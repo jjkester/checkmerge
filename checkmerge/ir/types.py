@@ -13,6 +13,11 @@ class Location(object):
     Location in source code.
     """
     def __init__(self, file: str, line: int, column: int):
+        """
+        :param file: The file name or path. May be the empty string if unknown.
+        :param line: The line number in the file.
+        :param column: The column number in the line.
+        """
         # Set properties
         self.file = file  # type: str
         self.line = line  # type: int
@@ -20,6 +25,22 @@ class Location(object):
 
     def __str__(self):
         return f"{self.file}:{self.line}:{self.column}"
+
+    def __eq__(self, other):
+        if not isinstance(other, Location):
+            return super(Location, self).__eq__(other)
+
+        # Test lines and columns
+        eq = self.line == other.line and self.column == other.column
+
+        # Test files if present
+        if self.file and other.file:
+            eq = eq and self.file == other.file
+
+        return eq
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @classmethod
     def parse(cls: typing.Type[L], value: str) -> L:
@@ -44,7 +65,7 @@ class IRNode(object):
     def __init__(self, uid: str, location: typing.Optional[Location] = None):
         # Set properties
         self.uid = uid  # type: str
-        self.location = location  # type: Location
+        self._location = location  # type: Location
 
     def register_child(self, obj: object):
         """
@@ -77,6 +98,14 @@ class IRNode(object):
         # Actually register
         registry[key] = obj
 
+    @property
+    def key(self):
+        return self.uid
+
+    @property
+    def location(self):
+        return self._location
+
 
 class Module(IRNode):
     """
@@ -97,7 +126,11 @@ class Module(IRNode):
 
         :param obj: The function to register.
         """
-        self._register(Function, obj, obj.name, self.functions)
+        self._register(Function, obj, obj.key, self.functions)
+
+    @property
+    def key(self):
+        return self.name
 
 
 class Function(IRNode):
@@ -124,7 +157,7 @@ class Function(IRNode):
 
         :param obj: The block to register.
         """
-        self._register(Block, obj, obj.name, self.blocks)
+        self._register(Block, obj, obj.key, self.blocks)
 
 
 class Block(IRNode):
@@ -150,18 +183,24 @@ class Block(IRNode):
 
         :param obj: The instruction to register.
         """
-        self._register(Instruction, obj, obj.uid, self.instructions)
+        self._register(Instruction, obj, obj.key, self.instructions)
+
+    @property
+    def key(self):
+        return self.name
 
 
 class Instruction(IRNode):
     """
     An instruction in a program.
     """
-    def __init__(self, uid: str, block: Block, *args, **kwargs):
+    def __init__(self, uid: str, block: Block, opcode: typing.Optional[str] = None, variable: typing.Optional[str] = None, *args, **kwargs):
         super(Instruction, self).__init__(uid, *args, **kwargs)
 
         # Set properties
         self.block = block  # type: Block
+        self.opcode = opcode  # type: typing.Optional[str]
+        self.variable = variable  # type: typing.Optional[str]
 
         # Initialize data structures
         self.dependencies = []  # type: typing.List[typing.Union[Instruction, Block]]
@@ -175,6 +214,9 @@ class Instruction(IRNode):
 
         :param obj: The dependency to register.
         """
+        if not isinstance(obj, (Instruction, Block)):
+            raise TypeError("Only instructions and blocks are valid dependencies.")
+
         if obj == self:
             raise ValueError("An instruction cannot be a dependency of itself.")
 
