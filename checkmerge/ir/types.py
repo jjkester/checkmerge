@@ -5,7 +5,6 @@ import typing
 # Type variables to improve static typing
 T = typing.TypeVar('T')
 K = typing.TypeVar('K')
-L = typing.TypeVar('L')
 
 
 class Location(object):
@@ -43,7 +42,7 @@ class Location(object):
         return not self.__eq__(other)
 
     @classmethod
-    def parse(cls: typing.Type[L], value: str) -> L:
+    def parse(cls: typing.Type["Location"], value: str) -> "Location":
         """
         Parses a semicolon `:` separated location string in the format `filename:line:column`.
 
@@ -55,7 +54,7 @@ class Location(object):
         if len(segments) != 3:
             raise ValueError(f"The location string {value} is invalid.")
 
-        return L(*segments)
+        return cls(*segments)
 
 
 class IRNode(object):
@@ -66,6 +65,9 @@ class IRNode(object):
         # Set properties
         self.uid = uid  # type: str
         self._location = location  # type: Location
+
+    def __str__(self):
+        return self.key
 
     def register_child(self, obj: object):
         """
@@ -93,7 +95,7 @@ class IRNode(object):
 
         # Uniqueness checking
         if key in registry and obj != registry[key]:
-            raise ValueError(f"Duplicate object {obj} cannot be registered in {self}.")
+            raise ValueError(f"Duplicate object {obj} cannot be registered.")
 
         # Actually register
         registry[key] = obj
