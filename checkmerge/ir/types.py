@@ -33,13 +33,17 @@ class Location(object):
         eq = self.line == other.line and self.column == other.column
 
         # Test files if present
-        if self.file and other.file:
+        if self.file or other.file:
             eq = eq and self.file == other.file
 
         return eq
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    @property
+    def is_line(self):
+        return self.column == 0
 
     @classmethod
     def parse(cls: typing.Type["Location"], value: str) -> "Location":
@@ -54,7 +58,9 @@ class Location(object):
         if len(segments) != 3:
             raise ValueError(f"The location string {value} is invalid.")
 
-        return cls(*segments)
+        file, line, column = segments
+
+        return cls(file, int(line), int(column))
 
 
 class IRNode(object):

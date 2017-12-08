@@ -48,7 +48,6 @@ class IRParser(object):
         for function in raw.items():
             self._function = self._visit_function(*function)
 
-
         return list(self._modules.values())
 
     def _get_module(self, name) -> ir.Module:
