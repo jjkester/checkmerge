@@ -46,13 +46,16 @@ class Location(object):
         return self.column == 0
 
     @classmethod
-    def parse(cls: typing.Type["Location"], value: str) -> "Location":
+    def parse(cls: typing.Type["Location"], value: str) -> typing.Optional["Location"]:
         """
         Parses a semicolon `:` separated location string in the format `filename:line:column`.
 
         :param value: The location string.
         :return: A new instance.
         """
+        if len(value) == 0:
+            return None
+
         segments = value.split(':')
 
         if len(segments) != 3:

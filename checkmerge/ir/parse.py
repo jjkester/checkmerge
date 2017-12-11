@@ -147,7 +147,7 @@ class IRParser(object):
             block=self._block,
             opcode=data.get('opcode'),
             variable=variable,
-            location=location
+            location=ir.Location.parse(location)
         )
 
         # Set dependency ref
