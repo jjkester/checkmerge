@@ -66,9 +66,9 @@ class Location(object):
         return cls(file, int(line), int(column))
 
 
-class IRNode(object):
+class AnalysisNode(object):
     """
-    Base class for nodes of the internal representation tree.
+    Base class for nodes of the analysis internal representation tree.
     """
     def __init__(self, uid: str, location: typing.Optional[Location] = None):
         # Set properties
@@ -118,7 +118,7 @@ class IRNode(object):
         return self._location
 
 
-class Module(IRNode):
+class Module(AnalysisNode):
     """
     A module encloses functions in a program.
     """
@@ -144,7 +144,7 @@ class Module(IRNode):
         return self.name
 
 
-class Function(IRNode):
+class Function(AnalysisNode):
     """
     A function in a program.
     """
@@ -171,7 +171,7 @@ class Function(IRNode):
         self._register(Block, obj, obj.key, self.blocks)
 
 
-class Block(IRNode):
+class Block(AnalysisNode):
     """
     A block containing instructions.
     """
@@ -201,7 +201,7 @@ class Block(IRNode):
         return self.name
 
 
-class Instruction(IRNode):
+class Instruction(AnalysisNode):
     """
     An instruction in a program.
     """

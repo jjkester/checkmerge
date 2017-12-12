@@ -1,8 +1,7 @@
 import pprint
 import typing
 
-from checkmerge.ir import types
-
+from checkmerge_llvm.ir import types
 
 # Define stream type
 Stream = typing.Union[typing.AnyStr, typing.IO]
@@ -15,11 +14,11 @@ class IRPrinter(object):
     def __init__(self, stream: Stream = None):
         self._stream = stream
 
-    def print(self, node: types.IRNode):
+    def print(self, node: types.AnalysisNode):
         printer = pprint.PrettyPrinter(indent=2, stream=self._stream)
         printer.pprint(self.transform(node))
 
-    def transform(self, node: types.IRNode) -> typing.Dict[str, typing.Dict]:
+    def transform(self, node: types.AnalysisNode) -> typing.Dict[str, typing.Dict]:
         def _extract(x):
             return self.transform(x).items()
 

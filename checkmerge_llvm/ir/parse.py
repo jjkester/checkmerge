@@ -2,7 +2,7 @@ import typing
 
 import yaml
 
-from checkmerge.ir import types as ir
+from checkmerge_llvm.ir import types as ir
 
 # Define stream type
 Stream = typing.Union[typing.AnyStr, typing.IO]
@@ -19,7 +19,7 @@ class IRParser(object):
         self._function = None  # type: typing.Optional[ir.Function]
         self._block = None  # type: typing.Optional[ir.Block]
         self._instruction = None  # type: typing.Optional[ir.Instruction]
-        self._dependency_refs = {}  # type: typing.Dict[str, ir.IRNode]
+        self._dependency_refs = {}  # type: typing.Dict[str, ir.AnalysisNode]
         self._dependencies = {}  # type: typing.Dict[ir.Instruction, typing.List[str]]
 
         # Initialize YAML implementation
@@ -164,7 +164,7 @@ class IRParser(object):
         return self._instruction
 
     @staticmethod
-    def _resolve_dependencies(data: typing.Dict[ir.Instruction, typing.List[str]], lookup: typing.Dict[str, ir.IRNode]):
+    def _resolve_dependencies(data: typing.Dict[ir.Instruction, typing.List[str]], lookup: typing.Dict[str, ir.AnalysisNode]):
         for instruction, dependencies in data.items():
             for dependency in dependencies:
                 foreign_obj = lookup.get(dependency)

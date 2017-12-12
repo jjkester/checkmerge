@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from checkmerge.ir.types import Location, Module, Function, Block
+from checkmerge_llvm.ir.types import Location, Module, Function, Block
 
 
 class LocationTestCase(unittest.TestCase):

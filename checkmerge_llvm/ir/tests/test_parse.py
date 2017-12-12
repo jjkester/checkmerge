@@ -1,6 +1,6 @@
 import unittest
 
-from checkmerge.ir.parse import IRParser
+from checkmerge_llvm.ir.parse import IRParser
 
 
 class SimpleIRParseTestCase(unittest.TestCase):
