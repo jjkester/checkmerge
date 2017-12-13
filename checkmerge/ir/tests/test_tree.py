@@ -16,22 +16,26 @@ class IRNodeTestCase(unittest.TestCase):
         self.rrl = IRNode("child", label="4", parent=self.rr)
 
     def test_descendants(self):
+        """Tests the generation of the descendants of a node."""
         self.assertEqual([], list(self.rrl.descendants))
         self.assertEqual([self.rr, self.rrl], list(self.r.descendants))
         self.assertEqual([self.l, self.ll, self.lr, self.lrl, self.lrr, self.r, self.rr, self.rrl],
                          list(self.root.descendants))
 
     def test_nodes(self):
+        """Tests the generation of the node list of a node."""
         self.assertEqual([self.lrl], list(self.lrl.nodes))
         self.assertEqual([self.lr, self.lrl, self.lrr], list(self.lr.nodes))
         self.assertTrue(self.root in self.root.nodes)
 
     def test_height(self):
+        """Tests the calculation of the height of a node."""
         self.assertEqual(1, self.ll.height)
         self.assertEqual(3, self.l.height)
         self.assertEqual(4, self.root.height)
 
     def test_hash(self):
+        """Tests the calculation of a hash of a node."""
         self.assertEqual(self.root.hash, self.root.hash)
         self.assertNotEqual(self.l.hash, self.r.hash)
         self.assertEqual(self.rrl.hash, IRNode("child", label="4").hash)

@@ -75,6 +75,7 @@ class GumTreeTestCase(unittest.TestCase):
         ])
 
     def test_topdown_equal(self):
+        """Tests the topdown phase algorithm with two equal trees."""
         diff = GumTreeTopDown(min_height=2)
         t1 = self.t1
         t2 = deepcopy(self.t1)
@@ -97,6 +98,7 @@ class GumTreeTestCase(unittest.TestCase):
             self.assertEqual(len(t2_nodes[i].children), len(mapping[t1_nodes[i]].children))
 
     def test_topdown_inequal(self):
+        """Tests the topdown phase algorithm with two slightly different trees."""
         diff = GumTreeTopDown(min_height=2)
         t1 = self.t1
         t2 = self.t2

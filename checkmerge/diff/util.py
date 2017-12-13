@@ -40,6 +40,9 @@ class PriorityList(object):
     def __bool__(self):
         return bool(self.data)
 
+    def __len__(self):
+        return len(self.data)
+
 
 def exists(iterable: typing.Iterable):
     """
