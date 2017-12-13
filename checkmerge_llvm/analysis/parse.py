@@ -2,7 +2,8 @@ import typing
 
 import yaml
 
-from checkmerge_llvm.ir import types as ir
+import checkmerge.ir.metadata
+from checkmerge_llvm.analysis import types as ir
 
 # Define stream type
 Stream = typing.Union[typing.AnyStr, typing.IO]
@@ -83,7 +84,7 @@ class IRParser(object):
             uid=name,
             name=data['name'],
             module=module,
-            location=ir.Location.parse(data['location'])
+            location=checkmerge.ir.metadata.Location.parse(data['location'])
         )
 
         # Filter out blocks
@@ -147,7 +148,7 @@ class IRParser(object):
             block=self._block,
             opcode=data.get('opcode'),
             variable=variable,
-            location=ir.Location.parse(location)
+            location=checkmerge.ir.metadata.Location.parse(location)
         )
 
         # Set dependency ref

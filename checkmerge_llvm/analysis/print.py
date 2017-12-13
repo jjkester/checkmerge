@@ -1,7 +1,7 @@
 import pprint
 import typing
 
-from checkmerge_llvm.ir import types
+from checkmerge_llvm.analysis import types
 
 # Define stream type
 Stream = typing.Union[typing.AnyStr, typing.IO]

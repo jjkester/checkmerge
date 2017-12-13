@@ -1,16 +1,20 @@
 import hashlib
 import typing
 
+from checkmerge.ir.metadata import Metadata
+
 
 class IRNode(object):
     def __init__(self, typ: str, label: typing.Optional[str] = None, parent: typing.Optional["IRNode"] = None,
                  children: typing.Optional[typing.List["IRNode"]] = None,
+                 metadata: typing.Optional[typing.List[Metadata]] = None,
                  source_obj: typing.Optional[typing.Any] = None):
         self.type = typ
         self.label = label
         self.parent = parent
         self.source_obj = source_obj
         self.children = children if children is not None else []  # type: typing.List[IRNode]
+        self.metadata = metadata if metadata is not None else []  # type: typing.List[Metadata]
 
         for child in self.children:
             if child.parent is not None:
