@@ -73,10 +73,3 @@ class GumTreeTopDown(object):
     @staticmethod
     def isomorphic(t1: tree.IRNode, t2: tree.IRNode) -> bool:
         return t1.hash == t2.hash
-
-    @classmethod
-    def rmap(cls, t1: tree.IRNode, t2: tree.IRNode, mappings: typing.Dict[tree.IRNode, tree.IRNode]) -> None:
-        mappings[t1] = t2
-
-        for c1, c2 in filter(lambda x: cls.isomorphic(*x), itertools.product(t1.children, t2.children)):
-            cls.rmap(c1, c2, mappings)
