@@ -2,24 +2,43 @@ import typing
 
 import itertools
 
+from checkmerge.diff.base import DiffAlgorithm, DiffMapping
 from checkmerge.diff.util import PriorityList
 from checkmerge.ir import tree
 
 
-class GumTreeDiff(object):
-    def __init__(self, min_height: int):
+class GumTreeDiff(DiffAlgorithm):
+    def __init__(self, min_height: int, min_dice: float, max_size: int):
         """
         :param min_height: The minimum height of matched subtrees.
+        :param min_dice: The minimum dice coefficient when nodes with non-matching subtrees can still be matched.
+        :param max_size: The maximum size of a subtree to compute an edit script for.
         """
-        self.min_height = min_height
+        super(GumTreeDiff, self).__init__()
 
-    def top_down(self, base: tree.IRNode, other: tree.IRNode) -> typing.Dict[tree.IRNode, tree.IRNode]:
+        self.min_height = min_height
+        self.min_dice = min_dice
+        self.max_size = max_size
+
+    def __call__(self, base: tree.IRNode, other: tree.IRNode) -> DiffMapping:
         """
-        Runs the GumTree top down phase on the given trees.
+        Runs the GumTree algorithm to find a mapping between the nodes of both trees.
 
         :param base: The base tree.
         :param other: The tree to compare.
-        :return: A mapping between nodes from the base tree to the other tree.
+        :return: A mapping between nodes from the base tree to nodes from the other tree.
+        """
+        return self.bottom_up(base, other, self.top_down(base, other))
+
+    def top_down(self, base: tree.IRNode, other: tree.IRNode) -> DiffMapping:
+        """
+        Runs the GumTree top down phase on the given trees.
+
+        The top down phase of the algorithm finds the largest isomorphic subtrees and maps these together.
+
+        :param base: The base tree.
+        :param other: The tree to compare.
+        :return: A mapping between nodes from the base tree to nodes from the other tree.
         """
         # List of nodes to evaluate ordered by their height (one for each tree)
         l1 = PriorityList(key=self.priority)
@@ -80,6 +99,20 @@ class GumTreeDiff(object):
                 for n1, n2 in filter(lambda x: self.isomorphic(*x), itertools.product(t1.nodes, t2.nodes)):
                     m[n1] = n2  # line 17
 
+        return m
+
+    def bottom_up(self, base: tree.IRNode, other: tree.IRNode, m: DiffMapping) -> DiffMapping:
+        """
+        Runs the GumTree bottom up algorithm on the given trees. Expects a mapping from the top down phase as input.
+
+        The bottom up phase tries to map nodes with a significant number of matching subtrees together.
+
+        :param base: The base tree.
+        :param other: The tree to compare.
+        :param m: A mapping between nodes from the base tree to nodes from the other tree. This is typically produced by
+                  the top down phase algorithm.
+        :return: A mapping between nodes from the base tree to nodes from the other tree.
+        """
         return m
 
     @staticmethod
