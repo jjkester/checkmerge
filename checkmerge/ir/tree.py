@@ -62,6 +62,23 @@ class IRNode(object):
         children = ''.join(map(IRNode._hash_str, self.children))
         return f"{{{self.type}@{self.label}|{children}}}"
 
+    def subtree(self, reverse: bool = False) -> typing.Generator["IRNode", None, None]:
+        return self._bottom_up_subtree() if reverse else self._top_down_subtree()
+
+    def _top_down_subtree(self):
+        yield self
+
+        for child in self.children:
+            for node in child._top_down_subtree():
+                yield node
+
+    def _bottom_up_subtree(self):
+        for child in self.children:
+            for node in child._bottom_up_subtree():
+                yield node
+
+        yield self
+
     def __str__(self):
         if self.label:
             return f"{self.type}: {self.label}"

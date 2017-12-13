@@ -39,3 +39,12 @@ class IRNodeTestCase(unittest.TestCase):
         self.assertEqual(self.root.hash, self.root.hash)
         self.assertNotEqual(self.l.hash, self.r.hash)
         self.assertEqual(self.rrl.hash, IRNode("child", label="4").hash)
+
+    def test_subtree(self):
+        """Tests the top down walking of subtrees."""
+        self.assertEqual([self.rrl], list(self.rrl.subtree()))
+        self.assertEqual([self.rrl], list(self.rrl.subtree(reverse=True)))
+        self.assertEqual([self.root, self.l, self.ll, self.lr, self.lrl, self.lrr, self.r, self.rr, self.rrl],
+                         list(self.root.subtree()))
+        self.assertEqual([self.ll, self.lrl, self.lrr, self.lr, self.l, self.rrl, self.rr, self.r, self.root],
+                         list(self.root.subtree(reverse=True)))

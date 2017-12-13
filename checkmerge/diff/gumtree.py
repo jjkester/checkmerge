@@ -8,7 +8,7 @@ from checkmerge.ir import tree
 
 
 class GumTreeDiff(DiffAlgorithm):
-    def __init__(self, min_height: int, min_dice: float, max_size: int):
+    def __init__(self, min_height: int = 2, min_dice: float = 0.5, max_size: int = 100):
         """
         :param min_height: The minimum height of matched subtrees.
         :param min_dice: The minimum dice coefficient when nodes with non-matching subtrees can still be matched.
@@ -72,12 +72,13 @@ class GumTreeDiff(DiffAlgorithm):
                 for t1, t2 in filter(lambda x: self.isomorphic(*x), itertools.product(h1, h2)):  # line 12, 13
                     # If there are multiple candidates for a subtree, add these to the candidate set
                     # Otherwise add the subtrees and their children to the mappings.
-                    if list(filter(lambda tx: self.isomorphic(t1, tx) and tx != t2, other.nodes)) \
-                            or list(filter(lambda tx: self.isomorphic(tx, t2) and tx != t1, base.nodes)):  # line 14
+                    if list(filter(lambda tx: self.isomorphic(t1, tx) and tx != t2, other.subtree())) or \
+                            list(filter(lambda tx: self.isomorphic(tx, t2) and tx != t1, base.subtree())):  # line 14
                         a.append((t1, t2))  # line 15
                     else:
                         # TODO This loop is inefficient but guaranteed to have the desired effect.
-                        for n1, n2 in filter(lambda x: self.isomorphic(*x), itertools.product(t1.nodes, t2.nodes)):
+                        for n1, n2 in filter(lambda x: self.isomorphic(*x),
+                                             itertools.product(t1.subtree(), t2.subtree())):
                             m[n1] = n2  # line 17
 
                 # Add the unmapped subtrees to the queue
@@ -96,7 +97,7 @@ class GumTreeDiff(DiffAlgorithm):
         # Add candidates in order to the mapping if the nodes are not mapped to ensure the best options are chosen
         for t1, t2 in a:  # line 20, 21
             if t1 not in m.keys() and t2 not in m.values():  # line 23, 24
-                for n1, n2 in filter(lambda x: self.isomorphic(*x), itertools.product(t1.nodes, t2.nodes)):
+                for n1, n2 in filter(lambda x: self.isomorphic(*x), itertools.product(t1.subtree(), t2.subtree())):
                     m[n1] = n2  # line 17
 
         return m
@@ -107,12 +108,32 @@ class GumTreeDiff(DiffAlgorithm):
 
         The bottom up phase tries to map nodes with a significant number of matching subtrees together.
 
+        The mapping passed to this method will be mutated with the results for efficiency.
+
         :param base: The base tree.
         :param other: The tree to compare.
         :param m: A mapping between nodes from the base tree to nodes from the other tree. This is typically produced by
                   the top down phase algorithm.
         :return: A mapping between nodes from the base tree to nodes from the other tree.
         """
+        # Select unmatched nodes with matched children
+        t1s = filter(lambda n: n not in m and [d for d in n.children if d in m], base.subtree(reverse=True))  # line 1
+
+        # Iterate over these nodes
+        for t1 in t1s:  # line 1
+            # Select similar nodes based on dice coefficient
+            t2s = filter(lambda y: y[1] not in m.values() and y[0] > self.min_dice,
+                         ((self.dice(t1, tx, m), tx) for tx in other.subtree(reverse=True)))  # line 2, 3
+
+            # Choose best match
+            t2 = max(t2s, default=(None, None))[1]  # line 2, 3
+
+            # Store best match as mapping
+            if t2 is not None:  # line 3
+                m[t1] = t2  # line 4
+
+                # TODO Use minimal edit script to map subtree of t1 and t2
+
         return m
 
     @staticmethod
@@ -140,7 +161,7 @@ class GumTreeDiff(DiffAlgorithm):
         """
         d1 = set(t1.descendants)
         d2 = set(t2.descendants)
-        common = len({d for d in d1 if mappings[t1] in d2})
+        common = len({d for d in d1 if mappings.get(d) in d2})
         return float(2 * common) / float(len(d1) + len(d2))
 
     @staticmethod
