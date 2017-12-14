@@ -25,6 +25,12 @@ class IRNode(object):
             self.parent.children.append(self)
 
     @property
+    def name(self):
+        if self.label:
+            return f"{self.type}: {self.label}"
+        return f"{self.type}"
+
+    @property
     def is_leaf(self):
         return len(self.children) == 0
 
@@ -80,9 +86,7 @@ class IRNode(object):
         yield self
 
     def __str__(self):
-        if self.label:
-            return f"{self.type}: {self.label}"
-        return f"{self.type}"
+        return self.name
 
     def __lt__(self, other):
         if isinstance(other, IRNode):

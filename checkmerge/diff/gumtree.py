@@ -2,6 +2,8 @@ import typing
 
 import itertools
 
+import apted
+
 from checkmerge.diff.base import DiffAlgorithm, DiffMapping
 from checkmerge.diff.util import PriorityList
 from checkmerge.ir import tree
@@ -48,7 +50,7 @@ class GumTreeDiff(DiffAlgorithm):
         a = []  # type: typing.List[typing.Tuple[tree.IRNode, tree.IRNode]]
 
         # Decided on mappings
-        m = {}  # type: typing.Dict[tree.IRNode, tree.IRNode]
+        m = {}  # type: DiffMapping
 
         # Start with the root nodes
         l1.push(base)  # line 1
@@ -122,7 +124,7 @@ class GumTreeDiff(DiffAlgorithm):
         # Iterate over these nodes
         for t1 in t1s:  # line 1
             # Select similar nodes based on dice coefficient
-            t2s = filter(lambda y: y[1] not in m.values() and y[0] > self.min_dice,
+            t2s = filter(lambda y: y[1] not in m.values() and y[0] > self.min_dice and t1.type == y[1].type,
                          ((self.dice(t1, tx, m), tx) for tx in other.subtree(reverse=True)))  # line 2, 3
 
             # Choose best match
@@ -132,9 +134,32 @@ class GumTreeDiff(DiffAlgorithm):
             if t2 is not None:  # line 3
                 m[t1] = t2  # line 4
 
-                # TODO Use minimal edit script to map subtree of t1 and t2
+                # Try to match even more nodes based on their edit distance
+                for r1, r2 in filter(lambda x: x[0] is not None and x[1] is not None, self.opt(t1, t2)):  # line 6, 7
+                    if r1 not in m.keys() and r2 not in m.values() and r1.type == r2.type:  # line 8
+                        m[r1] = r2  # line 9
 
         return m
+
+    def opt(self, base: tree.IRNode, other: tree.IRNode) -> typing.List[typing.Tuple[tree.IRNode, tree.IRNode]]:
+        """
+        Runs the GumTree optimization algorithm on the given trees.
+
+        The optimization algorithm tries to find mappings between nodes based on the edit distance.
+
+        The actual implemented algorithm is the AP-TED (All Path Tree Edit Distance) algorithm.
+
+        :param base: The base tree.
+        :param other: The tree to compare.
+        :return: A mapping between nodes from the base tree to nodes from the other tree.
+        """
+        # Set up APTED algorithm
+        algorithm = apted.APTED(base, other)
+
+        # Compute mappings
+        edit_mapping = algorithm.compute_edit_mapping()
+
+        return edit_mapping
 
     @staticmethod
     def priority(t: tree.IRNode) -> int:
