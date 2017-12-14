@@ -1,1 +1,2 @@
+graphviz
 PyYAML ~= 3.0
