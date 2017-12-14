@@ -1,8 +1,7 @@
+import itertools
 import typing
 
-import itertools
-
-import apted
+import zss
 
 from checkmerge.diff.base import DiffAlgorithm, DiffMapping
 from checkmerge.diff.util import PriorityList
@@ -10,7 +9,7 @@ from checkmerge.ir import tree
 
 
 class GumTreeDiff(DiffAlgorithm):
-    def __init__(self, min_height: int = 2, min_dice: float = 0.5, max_size: int = 100):
+    def __init__(self, min_height: int = 2, min_dice: float = 0.3, max_size: int = 100):
         """
         :param min_height: The minimum height of matched subtrees.
         :param min_dice: The minimum dice coefficient when nodes with non-matching subtrees can still be matched.
@@ -118,26 +117,30 @@ class GumTreeDiff(DiffAlgorithm):
                   the top down phase algorithm.
         :return: A mapping between nodes from the base tree to nodes from the other tree.
         """
-        # Select unmatched nodes with matched children
-        t1s = filter(lambda n: n not in m and [d for d in n.children if d in m], base.subtree(reverse=True))  # line 1
+        # Iterate over unmatched nodes
+        for t1 in filter(lambda x: x not in m, base.subtree(reverse=True)):  # line 1
+            # Do steps if a child is matched
+            if [c for c in t1.children if c in m]:
+                # Select similar nodes based on dice coefficient
+                t2s = filter(lambda y: y[1] not in m.values() and y[0] > self.min_dice and t1.type == y[1].type,
+                             ((self.dice(t1, tx, m), tx) for tx in other.subtree(reverse=True)))  # line 2, 3
 
-        # Iterate over these nodes
-        for t1 in t1s:  # line 1
-            # Select similar nodes based on dice coefficient
-            t2s = filter(lambda y: y[1] not in m.values() and y[0] > self.min_dice and t1.type == y[1].type,
-                         ((self.dice(t1, tx, m), tx) for tx in other.subtree(reverse=True)))  # line 2, 3
+                # Choose best match
+                t2 = max(t2s, default=(None, None))[1]  # line 2, 3
 
-            # Choose best match
-            t2 = max(t2s, default=(None, None))[1]  # line 2, 3
+                # Store best match as mapping
+                if t2 is not None:  # line 3
+                    m[t1] = t2  # line 4
 
-            # Store best match as mapping
-            if t2 is not None:  # line 3
-                m[t1] = t2  # line 4
+                    t1l = len(list(t1.subtree(include_self=False)))  # line 5
+                    t2l = len(list(t2.subtree(include_self=False)))  # line 5
 
-                # Try to match even more nodes based on their edit distance
-                for r1, r2 in filter(lambda x: x[0] is not None and x[1] is not None, self.opt(t1, t2)):  # line 6, 7
-                    if r1 not in m.keys() and r2 not in m.values() and r1.type == r2.type:  # line 8
-                        m[r1] = r2  # line 9
+                    if max(t1l, t2l) < self.max_size:  # line 5
+                        # Try to match even more nodes based on their edit distance
+                        pairs = filter(lambda x: x[0] is not None and x[1] is not None, self.opt(t1, t2))  # line 6
+                        for r1, r2 in pairs:  # line 7
+                            if r1 not in m.keys() and r2 not in m.values() and r1.type == r2.type:  # line 8
+                                m[r1] = r2  # line 9
 
         return m
 
@@ -147,19 +150,17 @@ class GumTreeDiff(DiffAlgorithm):
 
         The optimization algorithm tries to find mappings between nodes based on the edit distance.
 
-        The actual implemented algorithm is the AP-TED (All Path Tree Edit Distance) algorithm.
-
-        :param base: The base tree.
-        :param other: The tree to compare.
-        :return: A mapping between nodes from the base tree to nodes from the other tree.
+        The Zhang Shasha algorithm is used to calculate the edit distance.
         """
-        # Set up APTED algorithm
-        algorithm = apted.APTED(base, other)
+        candidates = {}
 
-        # Compute mappings
-        edit_mapping = algorithm.compute_edit_mapping()
+        for t1, t2 in itertools.product(base.subtree(), other.subtree()):
+            distance = zss.simple_distance(t1, t2, get_children=lambda n: n.children, get_label=lambda n: n.name)
 
-        return edit_mapping
+            if t1 not in candidates or candidates[t1][0] > distance:
+                candidates[t1] = (distance, t2)
+
+        return [(n, t[1]) for n, t in candidates.items()]
 
     @staticmethod
     def priority(t: tree.IRNode) -> int:
@@ -188,6 +189,16 @@ class GumTreeDiff(DiffAlgorithm):
         d2 = set(t2.descendants)
         common = len({d for d in d1 if mappings.get(d) in d2})
         return float(2 * common) / float(len(d1) + len(d2))
+
+    @staticmethod
+    def jaccard(t1: tree.IRNode, t2: tree.IRNode, mappings: typing.Dict[tree.IRNode, tree.IRNode]) -> float:
+        d1 = set(t1.descendants)
+        d2 = set(t2.descendants)
+        common = len({d for d in d1 if mappings.get(d) in d2})
+        try:
+            return float(common) / float(len(d1) + len(d2) - common)
+        except ZeroDivisionError:
+            return 1.0
 
     @staticmethod
     def isomorphic(t1: tree.IRNode, t2: tree.IRNode) -> bool:

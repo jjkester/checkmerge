@@ -68,22 +68,24 @@ class IRNode(object):
         children = ''.join(map(IRNode._hash_str, self.children))
         return f"{{{self.type}@{self.label}|{children}}}"
 
-    def subtree(self, reverse: bool = False) -> typing.Generator["IRNode", None, None]:
-        return self._bottom_up_subtree() if reverse else self._top_down_subtree()
+    def subtree(self, include_self: bool = True, reverse: bool = False) -> typing.Generator["IRNode", None, None]:
+        return self._bottom_up_subtree(include_self) if reverse else self._top_down_subtree(include_self)
 
-    def _top_down_subtree(self):
-        yield self
+    def _top_down_subtree(self, include_self: bool = True):
+        if include_self:
+            yield self
 
         for child in self.children:
             for node in child._top_down_subtree():
                 yield node
 
-    def _bottom_up_subtree(self):
+    def _bottom_up_subtree(self, include_self: bool = True):
         for child in self.children:
             for node in child._bottom_up_subtree():
                 yield node
 
-        yield self
+        if include_self:
+            yield self
 
     def __str__(self):
         return self.name
