@@ -1,6 +1,5 @@
 import unittest
 from copy import deepcopy
-from pprint import pprint
 
 from checkmerge.diff.gumtree import GumTreeDiff
 from checkmerge.ir.tree import IRNode
