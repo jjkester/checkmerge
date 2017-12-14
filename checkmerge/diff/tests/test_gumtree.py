@@ -167,8 +167,6 @@ class GumTreeTestCase(unittest.TestCase):
         del expected_mapping[t1[1]]
         del expected_mapping[t1[1][0]]
 
-        print({str(k): str(v) for k, v in mapping.items()})
-
         self.assertEqual(len(expected_mapping), len(mapping))
 
         hash_mapping = {k.hash: v.hash for k, v in mapping.items()}
