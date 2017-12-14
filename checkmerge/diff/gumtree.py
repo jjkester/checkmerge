@@ -9,8 +9,21 @@ from checkmerge.ir import tree
 
 
 class GumTreeDiff(DiffAlgorithm):
+    """
+    Implementation of the GumTree tree diff algorithm [1]. This implementation is based on the algorithm description in
+    [1] and not on the Java implementation [2].
+
+    The `opt()` part of the algorithm is different from the algorithm used by the original authors so an existing Python
+    implementation of an algorithm for the same purpose could be used.
+
+    [1]: Falleri et al. Fine-grained and Accurate Source Code Differencing. 2014.
+    [2]: https://github.com/GumTreeDiff/gumtree
+    """
     def __init__(self, min_height: int = 2, min_dice: float = 0.3, max_size: int = 100):
         """
+        Instantiates a new tree diff executor with the given configuration parameters. The default values have been
+        taken from the Java implementation of the same algorithm.
+
         :param min_height: The minimum height of matched subtrees.
         :param min_dice: The minimum dice coefficient when nodes with non-matching subtrees can still be matched.
         :param max_size: The maximum size of a subtree to compute an edit script for.
@@ -99,7 +112,7 @@ class GumTreeDiff(DiffAlgorithm):
         for t1, t2 in a:  # line 20, 21
             if t1 not in m.keys() and t2 not in m.values():  # line 23, 24
                 for n1, n2 in filter(lambda x: self.isomorphic(*x), itertools.product(t1.subtree(), t2.subtree())):
-                    m[n1] = n2  # line 17
+                    m[n1] = n2  # line 22
 
         return m
 
@@ -135,6 +148,7 @@ class GumTreeDiff(DiffAlgorithm):
                     t1l = len(list(t1.subtree(include_self=False)))  # line 5
                     t2l = len(list(t2.subtree(include_self=False)))  # line 5
 
+                    # Ensure we only do the following computation for suitably small trees
                     if max(t1l, t2l) < self.max_size:  # line 5
                         # Try to match even more nodes based on their edit distance
                         pairs = filter(lambda x: x[0] is not None and x[1] is not None, self.opt(t1, t2))  # line 6
