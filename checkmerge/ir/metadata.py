@@ -18,9 +18,9 @@ class Location(Metadata):
         :param column: The column number in the line.
         """
         # Set properties
-        self.file = file  # type: str
-        self.line = line  # type: int
-        self.column = column  # type: int
+        self.file: str = file
+        self.line: int = line
+        self.column: int = column
 
     def __str__(self):
         return f"{self.file}:{self.line}:{self.column}"

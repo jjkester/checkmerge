@@ -59,10 +59,10 @@ class GumTreeDiff(DiffAlgorithm):
         l2 = PriorityList(key=self.priority)
 
         # Candidate mappings
-        a = []  # type: typing.List[typing.Tuple[tree.IRNode, tree.IRNode]]
+        a: typing.List[typing.Tuple[tree.IRNode, tree.IRNode]] = []
 
         # Decided on mappings
-        m = {}  # type: DiffMapping
+        m: DiffMapping = {}
 
         # Start with the root nodes
         l1.push(base)  # line 1

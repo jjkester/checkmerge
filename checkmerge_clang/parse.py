@@ -47,7 +47,7 @@ class ClangParser(parse.Parser):
         location = ir.Location(cursor.location.file, cursor.location.line, cursor.location.column)
 
         # Build metadata
-        metadata = [location]  # type: typing.List[ir.Metadata]
+        metadata: typing.List[ir.Metadata] = [location]
 
         # Build node
         node = ir.IRNode(

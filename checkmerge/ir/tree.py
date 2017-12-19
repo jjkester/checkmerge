@@ -17,8 +17,8 @@ class IRNode(object, metaclass=IRNodeBase):
         self.label = label
         self.parent = parent
         self.source_obj = source_obj
-        self.children = children if children is not None else []  # type: typing.List[IRNode]
-        self.metadata = metadata if metadata is not None else []  # type: typing.List[Metadata]
+        self.children: typing.List[IRNode] = children if children is not None else []
+        self.metadata: typing.List[Metadata] = metadata if metadata is not None else []
 
         for child in self.children:
             if child.parent is not None:

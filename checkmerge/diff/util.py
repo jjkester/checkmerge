@@ -9,7 +9,7 @@ T = typing.TypeVar('T')
 class PriorityList(object):
     def __init__(self, key: typing.Optional[typing.Callable[[T], int]] = None):
         self.key = key
-        self.data = []  # type: typing.List[typing.Tuple[int, T]]
+        self.data: typing.List[typing.Tuple[int, T]] = []
 
     def push(self, obj: T) -> None:
         item = (self.key(obj), obj) if self.key else obj
