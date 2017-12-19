@@ -4,7 +4,11 @@ import typing
 from checkmerge.ir.metadata import Metadata
 
 
-class IRNode(object):
+class IRNodeBase(type):
+    pass
+
+
+class IRNode(object, metaclass=IRNodeBase):
     def __init__(self, typ: str, label: typing.Optional[str] = None, parent: typing.Optional["IRNode"] = None,
                  children: typing.Optional[typing.List["IRNode"]] = None,
                  metadata: typing.Optional[typing.List[Metadata]] = None,
