@@ -1,22 +1,22 @@
 import hashlib
 import typing
+import weakref
+
+from cached_property import cached_property
 
 from checkmerge.ir.metadata import Metadata
 
 
-class IRNodeBase(type):
-    pass
-
-
-class IRNode(object, metaclass=IRNodeBase):
+class IRNode(object):
     def __init__(self, typ: str, label: typing.Optional[str] = None, parent: typing.Optional["IRNode"] = None,
                  children: typing.Optional[typing.List["IRNode"]] = None,
                  metadata: typing.Optional[typing.List[Metadata]] = None,
                  source_obj: typing.Optional[typing.Any] = None):
-        self.type = typ
-        self.label = label
-        self.parent = parent
-        self.source_obj = source_obj
+        self.type: str = typ
+        self.label: str = label
+        self._parent = None
+        self.parent: typing.Optional[IRNode] = parent
+        self.source_obj: typing.Any = source_obj
         self.children: typing.List[IRNode] = children if children is not None else []
         self.metadata: typing.List[Metadata] = metadata if metadata is not None else []
 
@@ -29,12 +29,25 @@ class IRNode(object, metaclass=IRNodeBase):
             self.parent.children.append(self)
 
     @property
+    def parent(self) -> typing.Optional["IRNode"]:
+        if self._parent is None:
+            return None
+        return self._parent()
+
+    @parent.setter
+    def parent(self, value: typing.Optional["IRNode"]):
+        if value is None:
+            self._parent = None
+        else:
+            self._parent = weakref.ref(value)
+
+    @cached_property
     def name(self):
         if self.label:
             return f"{self.type}: {self.label}"
         return f"{self.type}"
 
-    @property
+    @cached_property
     def is_leaf(self):
         return len(self.children) == 0
 
@@ -53,7 +66,7 @@ class IRNode(object, metaclass=IRNodeBase):
         for descendant in self.descendants:
             yield descendant
 
-    @property
+    @cached_property
     def height(self) -> int:
         return self._height()
 
@@ -62,7 +75,7 @@ class IRNode(object, metaclass=IRNodeBase):
             return max(map(IRNode._height, self.children)) + 1
         return 1
 
-    @property
+    @cached_property
     def hash(self) -> str:
         hasher = hashlib.blake2b()
         hasher.update(self._hash_str().encode())
