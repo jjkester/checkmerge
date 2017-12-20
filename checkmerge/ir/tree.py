@@ -107,6 +107,9 @@ class IRNode(object):
     def __str__(self):
         return self.name
 
+    def __repr__(self):
+        return f"{self.__class__.__name__} <{str(self)}>"
+
     def __lt__(self, other):
         if isinstance(other, IRNode):
             return self.height < other.height

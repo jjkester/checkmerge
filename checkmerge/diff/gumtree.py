@@ -69,7 +69,7 @@ class GumTreeDiff(DiffAlgorithm):
         l2.push(other)  # line 2
 
         # While there are large enough subtrees to compare, do comparison
-        while l1 and l2 and min(l1.peek().height, l2.peek().height) > self.min_height:  # line 3
+        while l1 and l2 and min(l1.peek().height, l2.peek().height) >= self.min_height:  # line 3
             # Add the children of the larger subtree to the queue if the height is not equal
             if l1.peek().height > l2.peek().height:  # line 4, 5
                 for t in l1.pop_many():  # line 6

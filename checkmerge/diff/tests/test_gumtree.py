@@ -1,6 +1,9 @@
 import unittest
 
+import os
+
 from checkmerge.diff.gumtree import GumTreeDiff
+from checkmerge.ir import GraphVizFormatter
 from checkmerge.ir.tree import IRNode
 
 
@@ -34,23 +37,227 @@ class OriginalGumTreeTestCase(unittest.TestCase):
         ])
 
     def test_min_height_threshold(self):
-        diff = GumTreeDiff(min_height=0, max_size=0)
+        diff = GumTreeDiff(min_height=1, max_size=0)
         mapping = diff(self.t1, self.t2)
 
         self.assertEqual(5, len(mapping))
 
-        diff = GumTreeDiff(min_height=1, max_size=0)
+        diff = GumTreeDiff(min_height=2, max_size=0)
         mapping = diff(self.t1, self.t2)
 
         self.assertEqual(4, len(mapping))
 
     def test_max_size_threshold(self):
-        diff = GumTreeDiff(min_height=0, max_size=0)
+        diff = GumTreeDiff(min_height=1, max_size=0)
         mapping = diff(self.t1, self.t2)
 
         self.assertEqual(5, len(mapping))
 
-        diff = GumTreeDiff(min_height=0, max_size=8)
+        diff = GumTreeDiff(min_height=1, max_size=8)
         mapping = diff(self.t1, self.t2)
 
         self.assertEqual(6, len(mapping))
+
+
+class EuclidGumTreeTestCase(unittest.TestCase):
+    """
+    Test case for the GumTree algorithm implementation using a tree based on the Euclidian algorithm.
+    """
+    def setUp(self):
+        self.t1 = IRNode(typ="FunctionDef", label="gcd", children=[
+            IRNode(typ="FunctionParam", label="a"),
+            IRNode(typ="FunctionParam", label="b"),
+            IRNode(typ="BasicBlock", children=[
+                IRNode(typ="While", children=[
+                    IRNode(typ="Condition", children=[
+                        IRNode(typ="Operator", label="!=", children=[
+                            IRNode(typ="VariableRef", label="a"),
+                            IRNode(typ="VariableRef", label="b"),
+                        ]),
+                    ]),
+                    IRNode(typ="BasicBlock", children=[
+                        IRNode(typ="Conditional", children=[
+                            IRNode(typ="Condition", children=[
+                                IRNode(typ="Operator", label=">", children=[
+                                    IRNode(typ="VariableRef", label="a"),
+                                    IRNode(typ="VariableRef", label="b"),
+                                ]),
+                            ]),
+                            IRNode(typ="BasicBlock", children=[
+                                IRNode(typ="Assignment", label="a", children=[
+                                    IRNode(typ="Operator", label="-", children=[
+                                        IRNode(typ="VariableRef", label="a"),
+                                        IRNode(typ="VariableRef", label="b"),
+                                    ]),
+                                ]),
+                            ]),
+                            IRNode(typ="BasicBlock", children=[
+                                IRNode(typ="Assignment", label="b", children=[
+                                    IRNode(typ="Operator", label="-", children=[
+                                        IRNode(typ="VariableRef", label="b"),
+                                        IRNode(typ="VariableRef", label="a"),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+                IRNode(typ="Return", children=[
+                    IRNode(typ="VariableRef", label="a"),
+                ]),
+            ]),
+        ])
+
+        self.t2 = IRNode(typ="FunctionDef", label="gcd", children=[
+            IRNode(typ="FunctionParam", label="a"),
+            IRNode(typ="FunctionParam", label="b"),
+            IRNode(typ="BasicBlock", children=[
+                IRNode(typ="While", children=[
+                    IRNode(typ="Condition", children=[
+                        IRNode(typ="Operator", label="!=", children=[
+                            IRNode(typ="VariableRef", label="a"),
+                            IRNode(typ="VariableRef", label="b"),
+                        ]),
+                    ]),
+                    IRNode(typ="BasicBlock", children=[
+                        IRNode(typ="Assignment", label="t", children=[
+                            IRNode(typ="VariableRef", label="b"),
+                        ]),
+                        IRNode(typ="Assignment", label="b", children=[
+                            IRNode(typ="Operator", label="%", children=[
+                                IRNode(typ="VariableRef", label="a"),
+                                IRNode(typ="VariableRef", label="b"),
+                            ]),
+                        ]),
+                        IRNode(typ="Assignment", label="b", children=[
+                            IRNode(typ="VariableRef", label="t"),
+                        ]),
+                    ]),
+                ]),
+                IRNode(typ="Return", children=[
+                    IRNode(typ="VariableRef", label="a"),
+                ]),
+            ]),
+        ])
+
+        self.t3 = IRNode(typ="FunctionDef", label="gcd", children=[
+            IRNode(typ="FunctionParam", label="a"),
+            IRNode(typ="FunctionParam", label="b"),
+            IRNode(typ="BasicBlock", children=[
+                IRNode(typ="Condition", children=[
+                    IRNode(typ="Operator", label="==", children=[
+                        IRNode(typ="VariableRef", label="b"),
+                        IRNode(typ="Value", label="0"),
+                    ]),
+                    IRNode(typ="BasicBlock", children=[
+                        IRNode(typ="Return", children=[
+                            IRNode(typ="VariableRef", label="a"),
+                        ]),
+                    ]),
+                    IRNode(typ="BasicBlock", children=[
+                        IRNode(typ="Return", children=[
+                            IRNode("FunctionCall", label="gcd", children=[
+                                IRNode("VariableRef", label="b"),
+                                IRNode("Operator", label="%", children=[
+                                    IRNode(typ="VariableRef", label="a"),
+                                    IRNode(typ="VariableRef", label="b"),
+                                ]),
+                            ])
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ])
+
+        self.graphviz = GraphVizFormatter()
+        self.graphviz.add_tree(self.t1, "t1")
+        self.graphviz.add_tree(self.t2, "t2")
+        self.graphviz.add_tree(self.t3, "t3")
+
+        # Write trees to file
+        with open(os.path.join(os.path.dirname(__file__), 'euclid.png'), 'wb') as file:
+            png = self.graphviz.to_png()
+            file.write(png)
+
+    def test_t1_t2(self):
+        t1 = self.t1
+        t2 = self.t2
+
+        diff = GumTreeDiff()
+        result = diff(t1, t2)
+        mapping = set(result.items())
+
+        # Top down equalities
+        self.assertIn((t1, t2), mapping)  # FunctionDef: gcd
+        self.assertIn((t1[0], t2[0]), mapping)  # FunctionParam: a
+        self.assertIn((t1[1], t2[1]), mapping)  # FunctionParam: b
+        self.assertIn((t1[2], t2[2]), mapping)  # BasicBlock
+        self.assertIn((t1[2][0], t2[2][0]), mapping)  # While
+        self.assertIn((t1[2][0][0], t2[2][0][0]), mapping)  # Condition
+        self.assertIn((t1[2][0][0][0], t2[2][0][0][0]), mapping)  # Operator: !=
+        self.assertIn((t1[2][0][0][0][0], t2[2][0][0][0][0]), mapping)  # VariableRef: a
+        self.assertIn((t1[2][0][0][0][1], t2[2][0][0][0][1]), mapping)  # VariableRef: b
+        self.assertIn((t1[2][0][1], t2[2][0][1]), mapping)  # BasicBlock
+        self.assertIn((t1[2][1], t2[2][1]), mapping)  # Return
+        self.assertIn((t1[2][1][0], t2[2][1][0]), mapping)  # VariableRef: a
+
+        # Equal subtrees: None
+
+        # Counts
+        self.assertEqual(12, len(mapping))
+
+    def test_t1_t2_relaxed(self):
+        t1 = self.t1
+        t2 = self.t2
+
+        diff = GumTreeDiff(min_height=1)
+        result = diff(t1, t2)
+        mapping = set(result.items())
+
+        # Top down equalities
+        self.assertIn((t1, t2), mapping)  # FunctionDef: gcd
+        self.assertIn((t1[0], t2[0]), mapping)  # FunctionParam: a
+        self.assertIn((t1[1], t2[1]), mapping)  # FunctionParam: b
+        self.assertIn((t1[2], t2[2]), mapping)  # BasicBlock
+        self.assertIn((t1[2][0], t2[2][0]), mapping)  # While
+        self.assertIn((t1[2][0][0], t2[2][0][0]), mapping)  # Condition
+        self.assertIn((t1[2][0][0][0], t2[2][0][0][0]), mapping)  # Operator: !=
+        self.assertIn((t1[2][0][0][0][0], t2[2][0][0][0][0]), mapping)  # VariableRef: a
+        self.assertIn((t1[2][0][0][0][1], t2[2][0][0][0][1]), mapping)  # VariableRef: b
+        self.assertIn((t1[2][0][1], t2[2][0][1]), mapping)  # BasicBlock
+        self.assertIn((t1[2][1], t2[2][1]), mapping)  # Return
+        self.assertIn((t1[2][1][0], t2[2][1][0]), mapping)  # VariableRef: a
+
+        # Equal subtrees
+        self.assertIn(t2[2][0][1][0][0], map(lambda x: x[1], mapping))  # VariableRef: b
+        self.assertIn(t2[2][0][1][1][0], map(lambda x: x[1], mapping))  # Operator: %
+        self.assertIn(t2[2][0][1][1][0][0], map(lambda x: x[1], mapping))  # VariableRef: a
+        self.assertIn(t2[2][0][1][1][0][1], map(lambda x: x[1], mapping))  # VariableRef: b
+
+        # Counts
+        self.assertEqual(16, len(mapping))
+
+    def test_t2_t3(self):
+        t1 = self.t2
+        t2 = self.t3
+
+        diff = GumTreeDiff()
+        result = diff(t1, t2)
+        mapping = set(result.items())
+
+        # Top down equalities
+        self.assertIn((t1, t2), mapping)  # FunctionDef: gcd
+        self.assertIn((t1[0], t2[0]), mapping)  # FunctionParam: a
+        self.assertIn((t1[1], t2[1]), mapping)  # FunctionParam: b
+        self.assertIn((t1[2], t2[2]), mapping)  # BasicBlock
+
+        # Equal subtrees
+        self.assertIn((t1[2][1], t2[2][0][1][0]), mapping)  # Return
+        self.assertIn((t1[2][1][0], t2[2][0][1][0][0]), mapping)  # VariableRef: a
+        self.assertIn((t1[2][0][1][1][0], t2[2][0][2][0][0][1]), mapping)  # Operator: %
+        self.assertIn((t1[2][0][1][1][0][0], t2[2][0][2][0][0][1][0]), mapping)  # VariableRef: a
+        self.assertIn((t1[2][0][1][1][0][1], t2[2][0][2][0][0][1][1]), mapping)  # VariableRef: b
+        self.assertIn((t1[2][0][0][0][1], t2[2][0][0][0]), mapping)  # VariableRef: b
+
+        # Counts
+        self.assertEqual(10, len(mapping))
