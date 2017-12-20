@@ -1,6 +1,6 @@
 import unittest
 
-from checkmerge.diff.util import PriorityList
+from checkmerge.util.collections import PriorityList
 
 
 class PriorityListTestCase(unittest.TestCase):

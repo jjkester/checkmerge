@@ -4,8 +4,8 @@ import typing
 import zss
 
 from checkmerge.diff.base import DiffAlgorithm, DiffMapping
-from checkmerge.diff.util import PriorityList
 from checkmerge.ir import tree
+from checkmerge.util.collections import PriorityList
 
 
 class GumTreeDiff(DiffAlgorithm):
