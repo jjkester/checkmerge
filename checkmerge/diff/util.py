@@ -42,17 +42,3 @@ class PriorityList(object):
 
     def __len__(self):
         return len(self.data)
-
-
-def exists(iterable: typing.Iterable):
-    """
-    Returns `True` when the iterable has content, otherwise `False`.
-
-    This function should be considerably faster than `len()` when used with iterables and generators when the exact
-    length of an iterable is not of interest.
-    """
-    if hasattr(iterable, '__len__'):
-        return len(iterable) > 0
-    elif hasattr(iterable, '__length_hint__'):
-        return iterable.__length_hint__() > 0
-    raise TypeError(f"Unable to determine the length of type {type(iterable)}.")
