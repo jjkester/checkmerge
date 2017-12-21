@@ -1,9 +1,6 @@
 import unittest
 
-import os
-
 from checkmerge.diff.gumtree import GumTreeDiff
-from checkmerge.ir import GraphVizFormatter
 from checkmerge.ir.tree import IRNode
 
 
@@ -168,16 +165,6 @@ class EuclidGumTreeTestCase(unittest.TestCase):
                 ]),
             ]),
         ])
-
-        self.graphviz = GraphVizFormatter()
-        self.graphviz.add_tree(self.t1, "t1")
-        self.graphviz.add_tree(self.t2, "t2")
-        self.graphviz.add_tree(self.t3, "t3")
-
-        # Write trees to file
-        with open(os.path.join(os.path.dirname(__file__), 'euclid.png'), 'wb') as file:
-            png = self.graphviz.to_png()
-            file.write(png)
 
     def test_t1_t2(self):
         t1 = self.t1
