@@ -15,7 +15,7 @@ class GraphVizFormatter(object):
         # Initialize fields
         self.graph = graphviz.Digraph(name)
 
-    def add_tree(self, t: tree.IRNode, name: typing.Optional[str] = None) -> None:
+    def add_tree(self, t: tree.IRNode, name: typing.Optional[str] = None) -> "GraphVizFormatter":
         """
         Adds an IR tree to the graph. Multiple trees can be rendered in the same graph, where every tree will be a
         subgraph.
@@ -36,6 +36,9 @@ class GraphVizFormatter(object):
 
         # Add graph to root
         self.graph.subgraph(graph)
+
+        # Return self for declarative use
+        return self
 
     def to_graphviz(self) -> str:
         """
