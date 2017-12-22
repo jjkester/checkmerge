@@ -7,10 +7,12 @@ class Metadata(object):
     """
 
 
-class Location(Metadata):
+class Location(object):
     """
     Location in source code.
     """
+    __slots__ = ('file', 'line', 'column')
+
     def __init__(self, file: str, line: int, column: int):
         """
         :param file: The file name or path. May be the empty string if unknown.

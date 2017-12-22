@@ -6,7 +6,7 @@ import weakref
 
 from cached_property import cached_property
 
-from checkmerge.ir.metadata import Metadata
+from checkmerge.ir.metadata import Metadata, Location
 
 
 class DependencyType(enum.Enum):
@@ -52,6 +52,7 @@ class IRNode(object):
     """
     def __init__(self, typ: str, label: typing.Optional[str] = None, parent: typing.Optional["IRNode"] = None,
                  children: typing.Optional[typing.List["IRNode"]] = None,
+                 location: typing.Optional[Location] = None,
                  metadata: typing.Optional[typing.List[Metadata]] = None,
                  source_obj: typing.Optional[typing.Any] = None):
         """
@@ -59,6 +60,7 @@ class IRNode(object):
         :param label: The string representation of the node.
         :param parent: The parent node, or `None`.
         :param children: The children of this node.
+        :param location: The location in the source code of this node.
         :param metadata: The metadata of this node.
         :param source_obj: The original AST object for debug purposes.
         """
@@ -69,6 +71,7 @@ class IRNode(object):
         self.parent: typing.Optional[IRNode] = parent
         self.source_obj: typing.Any = source_obj
         self.children: typing.List[IRNode] = children if children is not None else []
+        self.location = location
         self.metadata: typing.List[Metadata] = metadata if metadata is not None else []
 
         # Check children and set parent
@@ -99,14 +102,19 @@ class IRNode(object):
         else:
             self._parent = weakref.ref(value)
 
-    @cached_property
+    @property
     def name(self):
         """The name of this node, which is a combination of the type and the label."""
         if self.label:
             return f"{self.type}: {self.label}"
         return f"{self.type}"
 
-    @cached_property
+    @property
+    def is_root(self):
+        """Whether this node is the root of a tree."""
+        return self._parent is None
+
+    @property
     def is_leaf(self):
         """Whether this node is a leaf of the tree."""
         return len(self.children) == 0
