@@ -38,6 +38,11 @@ class DependencyType(enum.Enum):
     #: Examples are type references, function calls, ...
     REFERENCE = 'R'
 
+    #: Type dependency: the source type depends on the destination type.
+    #: D1 is type dependent on D2 if D2 is part of the definition of D1.
+    #: Examples are function declarations with arguments, typedefs, ...
+    TYPE = 'T'
+
     #: Dependencies that do not fall in any of the other categories.
     OTHER = 'O'
 
