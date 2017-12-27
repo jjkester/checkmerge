@@ -1,6 +1,6 @@
 import unittest
 
-from checkmerge_llvm.analysis.parse import IRParser
+from checkmerge_llvm.analysis import AnalysisParser
 
 
 class SimpleIRParseTestCase(unittest.TestCase):
@@ -28,9 +28,9 @@ function.main:
     """
     data = {
         'function.main': {
-            'name': 'main',
-            'module': 'test/mini.ll',
-            'location': '/home/user/projects/checkmerge-llvm/test/mini.c:1:0',
+            'name': "main",
+            'module': "test/mini.ll",
+            'location': "/home/user/projects/checkmerge-llvm/test/mini.c:1:0",
             'block.entry': [
                 {'instruction.0': {
                     'opcode': 'alloca',
@@ -39,9 +39,7 @@ function.main:
                 {'instruction.1': {
                     'opcode': 'store',
                     'location': '',
-                    'dependencies': [
-                        '*instruction.0',
-                    ],
+                    'dependencies': ["*instruction.0"],
                 }},
                 {'instruction.2': {
                     'opcode': 'ret',
@@ -52,20 +50,10 @@ function.main:
     }
 
     def test_read(self):
-        parser = IRParser()
+        parser = AnalysisParser()
         data = parser._read(self.text)
         self.assertEqual(self.data, data)
 
-    def test_get_module(self):
-        parser = IRParser()
-        module_name = 'file.c'
-
-        module = parser._get_module(module_name)
-
-        self.assertEqual(module_name, module.name)
-        self.assertEqual(1, len(parser._modules))
-
-        module2 = parser._get_module(module_name)
-
-        self.assertEqual(module, module2)
-        self.assertEqual(1, len(parser._modules))
+    def test_parse(self):
+        nodes = AnalysisParser.parse(self.text)
+        self.assertEqual(4, len(nodes))
