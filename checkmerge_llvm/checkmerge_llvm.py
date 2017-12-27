@@ -23,7 +23,7 @@ def get_library() -> str:
     else:
         pfx, ext = 'lib', '.so'
 
-    names = [f'{pfx}clang{ext}']
+    names = [f'{pfx}CheckMerge-LLVM{ext}']
 
     for name in names:
         try:
