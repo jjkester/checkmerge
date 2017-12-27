@@ -85,6 +85,9 @@ class Location(object):
             return self.coordinates >= other.coordinates
         return super(Location, self).__ge__(other)
 
+    def __hash__(self):
+        return hash(str(self))
+
     @classmethod
     def parse(cls: typing.Type["Location"], value: str) -> typing.Optional["Location"]:
         """

@@ -7,6 +7,7 @@ import typing
 import clang.cindex as clang
 
 from checkmerge import parse, ir
+from checkmerge_llvm import analysis as llvm
 
 
 class ClangParser(parse.Parser):
@@ -17,6 +18,9 @@ class ClangParser(parse.Parser):
     methods have been implemented to use a temporary file. Therefore, using `parse_stream` with a source file would mean
     a lot of unnecessary IO overhead.
     """
+    # Empty list for efficiency purposes
+    empty_set = set()
+
     def parse_str(self, val: str) -> typing.List[ir.IRNode]:
         # Create temporary file to work with
         with tempfile.NamedTemporaryFile() as f:
@@ -49,14 +53,35 @@ class ClangParser(parse.Parser):
         except clang.TranslationUnitLoadError:
             raise parse.ParseError(f"Unable to parse {path}. Run your compiler and check for errors.")
 
-        return [self._walk_ast(tu.cursor)]
+        # Get LLVM static analysis results
+        analysis_path = llvm.get_analysis_file(path)
 
-    def _walk_ast(self, cursor: clang.Cursor) -> ir.IRNode:
+        try:
+            with open(analysis_path) as analysis_file:
+                analysis = llvm.AnalysisParser.parse(analysis_file)
+        except FileNotFoundError:
+            raise parse.ParseError(f"The analysis file {analysis_path} for {path} does not exist.")
+        except IOError:
+            raise parse.ParseError(f"Unable to parse analysis file {analysis_path} for {path}."
+                                   f"An error occured while reading the file.")
+
+        return [self._walk_ast(tu.cursor, analysis)]
+
+    def _walk_ast(self, cursor: clang.Cursor, analysis: typing.Iterable[llvm.AnalysisNode]) -> ir.IRNode:
         """
         Iterates over the AST to build an IR tree.
 
         :param cursor: The cursor for the root node of the AST.
         """
+        # Lookup table for analysis
+        analysis_lookup = collections.defaultdict(set)
+
+        for a in analysis:
+            if a.reference and a.reference.location:
+                analysis_lookup[a.reference.location].add(a)
+            else:
+                analysis_lookup[None].add(a)
+
         # Queue
         walk_queue = queue.LifoQueue()
 
@@ -65,7 +90,7 @@ class ClangParser(parse.Parser):
 
         # Temporary dependency storage
         DependencyCache = typing.Dict[ir.IRNode, typing.Set[typing.Tuple[clang.Cursor, ir.DependencyType]]]
-        dependencies: DependencyCache = collections.defaultdict(list)
+        dependencies: DependencyCache = collections.defaultdict(set)
 
         # Add first element to queue
         walk_queue.put((cursor, None))
@@ -75,7 +100,7 @@ class ClangParser(parse.Parser):
         # Walk the AST and create the IR tree
         while True:
             try:
-                cursor, parent = walk_queue.get()
+                cursor, parent = walk_queue.get_nowait()
 
                 # Build IR node from cursor
                 node = self._parse_clang_node(cursor, parent)
@@ -85,17 +110,25 @@ class ClangParser(parse.Parser):
                     root = node
 
                 # Add reference dependencies if appropriate
-                dependencies[node].update(((d, ir.DependencyType.REFERENCE) for d in self._get_references(cursor)))
+                dependencies[node].update(((d.hash, ir.DependencyType.REFERENCE) for d in self._get_references(cursor)))
 
                 # Add arguments of calls and function definitions as dependency
-                dependencies[node].update(((d, ir.DependencyType.ARGUMENT) for d in self._get_arguments(cursor)))
+                dependencies[node].update(((d.hash, ir.DependencyType.ARGUMENT) for d in self._get_arguments(cursor)))
 
                 # Map cursor to node for dependency resolving
-                mapping[cursor] = node
+                mapping[cursor.hash] = node
+
+                # Find analysis info
+                for analysis_node in analysis_lookup.get(node.location, self.empty_set):
+                    # Add to mapping
+                    mapping[analysis_node] = node
+
+                    # Add dependencies
+                    dependencies[node].update(analysis_node.dependencies)
 
                 # Add children to queue
                 for child in cursor.get_children():
-                    walk_queue.put((child, node))
+                    walk_queue.put_nowait((child, node))
             except queue.Empty:
                 # Break out of loop when the queue is empty
                 break
@@ -105,11 +138,15 @@ class ClangParser(parse.Parser):
             for ref, dt in deps:
                 # Check whether we actually know the target of the dependency
                 if ref not in mapping:
-                    raise parse.ParseError("Found dependency reference to unregistered node.")
+                    # A dead AnalysisNode reference has no location, so probably not an issue.
+                    if not isinstance(ref, llvm.AnalysisNode):
+                        raise parse.ParseError("Found dependency reference to unregistered node.")
+                else:
+                    rnode = mapping[ref]
 
-                # Add dependency to node dependencies
-                node.dependencies.add((mapping[ref], dt))
-            del dependencies[node]  # Delete added dependencies to save memory
+                    # Add dependency to node dependencies
+                    if rnode != node:
+                        node.dependencies.add((rnode, dt))
 
         # Return root of the tree
         return root
@@ -124,7 +161,7 @@ class ClangParser(parse.Parser):
         :return: The corresponding IR node.
         """
         # Get location
-        location = ir.Location(cursor.location.file, cursor.location.line, cursor.location.column)
+        location = ir.Location(str(cursor.location.file), int(cursor.location.line), int(cursor.location.column))
 
         # Build node
         node = ir.IRNode(
@@ -151,7 +188,7 @@ class ClangParser(parse.Parser):
             yield from ()
 
         referenced = cursor.referenced
-        declaration = cursor.get_declaration()
+        declaration = cursor.get_definition()
 
         if referenced is not None:
             yield referenced
