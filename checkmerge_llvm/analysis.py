@@ -48,7 +48,7 @@ class AnalysisParser(object):
     def __init__(self):
         # Initialize data structures
         self._dependency_refs: typing.Dict[str, AnalysisNode] = {}
-        self._dependencies: typing.Dict[AnalysisNode, typing.Set[str]] = collections.defaultdict(set)
+        self._dependencies: typing.Dict[AnalysisNode, typing.Set[typing.Tuple[str, str]]] = collections.defaultdict(set)
 
         # Initialize YAML implementation
         self._Loader = None
@@ -150,9 +150,9 @@ class AnalysisParser(object):
         if 'dependencies' in data:
             dependencies = data['dependencies']
 
-            assert isinstance(dependencies, list)
+            assert isinstance(dependencies, dict)
 
-            self._dependencies[self._instruction] = [d[1:] for d in dependencies if isinstance(d, str) and d.startswith('*')]
+            self._dependencies[self._instruction].update(((d[1:], t) for d, t in dependencies.items() if isinstance(d, str) and d.startswith('*')))
 
         yield self._instruction
 
@@ -161,12 +161,25 @@ class AnalysisParser(object):
         lookup = self._dependency_refs
 
         for dependant, dependencies in data.items():
-            for ref in dependencies:
+            for ref, typ in dependencies:
                 dependency = lookup.get(ref)
+                dependency_type = ir.DependencyType.OTHER
+
+                if typ == "RAW":
+                    dependency_type = ir.DependencyType.FLOW
+                elif typ == "WAR":
+                    dependency_type = ir.DependencyType.ANTI
+                elif typ == "WAW":
+                    dependency_type = ir.DependencyType.OUTPUT
+                elif typ == "RAR":
+                    dependency_type = ir.DependencyType.INPUT
+                elif typ == "RAU":
+                    dependency_type = ir.DependencyType.FLOW
+                elif typ == "WAU":
+                    dependency_type = ir.DependencyType.ANTI
 
                 if dependency:
                     assert isinstance(dependency, AnalysisNode)
-                    dependency_type = ir.DependencyType.OTHER
                     dependant.dependencies.add((dependency, dependency_type))
 
     def _init_yaml(self):

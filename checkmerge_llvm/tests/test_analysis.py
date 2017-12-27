@@ -21,7 +21,7 @@ function.main:
         opcode: store
         location: ""
         dependencies:
-          - "*instruction.0"
+          "*instruction.0": "WAU"
     - instruction.2:
         opcode: ret
         location: ":2:5"
@@ -39,7 +39,7 @@ function.main:
                 {'instruction.1': {
                     'opcode': 'store',
                     'location': '',
-                    'dependencies': ["*instruction.0"],
+                    'dependencies': {"*instruction.0": "WAU"},
                 }},
                 {'instruction.2': {
                     'opcode': 'ret',
