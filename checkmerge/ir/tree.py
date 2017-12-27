@@ -35,13 +35,13 @@ class DependencyType(enum.Enum):
 
     #: Reference dependency: the source refers to a named entity defined by the target.
     #: S is reference dependent on N if S refers to the named entity N.
-    #: Examples are type references, function calls, ...
+    #: Examples are function calls, typedefs, ...
     REFERENCE = 'R'
 
-    #: Type dependency: the source type depends on the destination type.
-    #: D1 is type dependent on D2 if D2 is part of the definition of D1.
-    #: Examples are function declarations with arguments, typedefs, ...
-    TYPE = 'T'
+    #: Argument dependency: the source depends on the target as argument
+    #: D1 is type dependent on D2 if D2 is an argument of D1.
+    #: Examples are function declaration and calls, templates, ...
+    ARGUMENT = 'A'
 
     #: Dependencies that do not fall in any of the other categories.
     OTHER = 'O'
@@ -55,7 +55,8 @@ class IRNode(object):
     """
     Internal representation of an abstract syntax tree (AST) node.
     """
-    def __init__(self, typ: str, label: typing.Optional[str] = None, parent: typing.Optional["IRNode"] = None,
+    def __init__(self, typ: str, label: typing.Optional[str] = None, ref: typing.Optional[str] = None,
+                 parent: typing.Optional["IRNode"] = None,
                  children: typing.Optional[typing.List["IRNode"]] = None,
                  location: typing.Optional[Location] = None,
                  metadata: typing.Optional[typing.List[Metadata]] = None,
@@ -63,6 +64,7 @@ class IRNode(object):
         """
         :param typ: The name of the type of the node.
         :param label: The string representation of the node.
+        :param ref: The unique identifier of this node.
         :param parent: The parent node, or `None`.
         :param children: The children of this node.
         :param location: The location in the source code of this node.
@@ -71,9 +73,10 @@ class IRNode(object):
         """
         # Initialize and set fields from arguments
         self.type: str = typ
-        self.label: str = label
+        self.label: typing.Optional[str] = label
+        self.ref: typing.Optional[str] = ref
         self._parent = None
-        self.parent: typing.Optional[IRNode] = parent
+        self.parent = parent
         self.source_obj: typing.Any = source_obj
         self.children: typing.List[IRNode] = children if children is not None else []
         self.location = location

@@ -3,7 +3,7 @@ import platform
 from ctypes import cdll
 
 
-def get_library():
+def get_library() -> str:
     """
     Finds, loads and returns a reference to the clang library.
 
@@ -41,7 +41,7 @@ def get_library():
     raise EnvironmentError("The clang shared library does not appear to be present in this environment.")
 
 
-def configure():
+def configure() -> None:
     """
     Configures the clang Python bindings with the library.
     """
