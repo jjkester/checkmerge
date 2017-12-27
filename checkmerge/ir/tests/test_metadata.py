@@ -56,6 +56,39 @@ class LocationTestCase(unittest.TestCase):
         self.assertFalse(location.is_line)
         self.assertTrue(line_location.is_line)
 
+    def test_comparable(self):
+        """
+        Tests comparing two Location objects.
+        """
+        location = Location(self.file, self.line, self.column)
+
+        before = [
+            Location(self.file, self.line - 1, self.column + 10),
+            Location(self.file, self.line, self.column - 1),
+        ]
+
+        after = [
+            Location(self.file, self.line + 1, self.column - 10),
+            Location(self.file, self.line, self.column + 1),
+        ]
+
+        # Only run this test if there is a file, otherwise the locs should be equal (so this test would fail)
+        if location.file:
+            before.append(Location('/home/user/code/afile.c', self.line, self.column))
+            after.append(Location('/home/user/code/zfile.c', self.line, self.column))
+
+        for other in before:
+            self.assertLess(other, location)
+            self.assertLessEqual(other, location)
+            self.assertGreater(location, other)
+            self.assertGreaterEqual(location, other)
+
+        for other in after:
+            self.assertGreater(other, location)
+            self.assertGreaterEqual(other, location)
+            self.assertLess(location, other)
+            self.assertLessEqual(location, other)
+
 
 class NoFileLocationTestCase(LocationTestCase):
     """

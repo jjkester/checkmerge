@@ -24,8 +24,22 @@ class Location(object):
         self.line: int = line
         self.column: int = column
 
+    def as_tuple(self) -> typing.Tuple[str, int, int]:
+        return self.file, self.line, self.column
+
+    @property
+    def coordinates(self) -> typing.Tuple[int, int]:
+        return self.line, self.column
+
+    @property
+    def is_line(self) -> bool:
+        return self.column == 0
+
     def __str__(self):
         return f"{self.file}:{self.line}:{self.column}"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: {str(self)}>"
 
     def __eq__(self, other):
         if not isinstance(other, Location):
@@ -43,9 +57,33 @@ class Location(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    @property
-    def is_line(self):
-        return self.column == 0
+    def __lt__(self, other):
+        if isinstance(other, Location):
+            if self.file and other.file:
+                return self.as_tuple() < other.as_tuple()
+            return self.coordinates < other.coordinates
+        return super(Location, self).__lt__(other)
+
+    def __le__(self, other):
+        if isinstance(other, Location):
+            if self.file and other.file:
+                return self.as_tuple() <= other.as_tuple()
+            return self.coordinates <= other.coordinates
+        return super(Location, self).__le__(other)
+
+    def __gt__(self, other):
+        if isinstance(other, Location):
+            if self.file and other.file:
+                return self.as_tuple() > other.as_tuple()
+            return self.coordinates > other.coordinates
+        return super(Location, self).__gt__(other)
+
+    def __ge__(self, other):
+        if isinstance(other, Location):
+            if self.file and other.file:
+                return self.as_tuple() >= other.as_tuple()
+            return self.coordinates >= other.coordinates
+        return super(Location, self).__ge__(other)
 
     @classmethod
     def parse(cls: typing.Type["Location"], value: str) -> typing.Optional["Location"]:
