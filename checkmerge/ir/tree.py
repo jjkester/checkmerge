@@ -46,9 +46,12 @@ class DependencyType(enum.Enum):
     #: Dependencies that do not fall in any of the other categories.
     OTHER = 'O'
 
+    def __str__(self):
+        return self._name_.capitalize()
+
 
 # Generate a Dependency type with the named tuple factory
-Dependency: typing.Type[typing.Tuple["IRNode", DependencyType]] = collections.namedtuple('Dependency', ('node', 'type'))
+Dependency = collections.namedtuple('Dependency', ('node', 'type'))
 
 
 class IRNode(object):
