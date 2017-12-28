@@ -10,6 +10,11 @@ from checkmerge import parse, ir
 from checkmerge_llvm import analysis as llvm
 
 
+# Customizer type definition
+NodeData = typing.Dict[str, typing.Any]
+Customizer = typing.Callable[[clang.Cursor, NodeData], NodeData]
+
+
 class ClangParser(parse.Parser):
     """
     A CheckMerge parser using the Clang compiler.
@@ -19,7 +24,10 @@ class ClangParser(parse.Parser):
     a lot of unnecessary IO overhead.
     """
     # Empty list for efficiency purposes
-    empty_set = set()
+    empty_set: typing.Set[None] = set()
+
+    # Customizers
+    _customizers: typing.Dict[clang.CursorKind, Customizer] = dict()
 
     def parse_str(self, val: str) -> typing.List[ir.IRNode]:
         # Create temporary file to work with
@@ -110,13 +118,13 @@ class ClangParser(parse.Parser):
                     root = node
 
                 # Add reference dependencies if appropriate
-                dependencies[node].update(((d.hash, ir.DependencyType.REFERENCE) for d in self._get_references(cursor)))
+                dependencies[node].update(((d.canonical.hash, ir.DependencyType.REFERENCE) for d in self._get_references(cursor)))
 
                 # Add arguments of calls and function definitions as dependency
-                dependencies[node].update(((d.hash, ir.DependencyType.ARGUMENT) for d in self._get_arguments(cursor)))
+                dependencies[node].update(((d.canonical.hash, ir.DependencyType.ARGUMENT) for d in self._get_arguments(cursor)))
 
                 # Map cursor to node for dependency resolving
-                mapping[cursor.hash] = node
+                mapping[cursor.canonical.hash] = node
 
                 # Find analysis info
                 for analysis_node in analysis_lookup.get(node.location, self.empty_set):
@@ -136,23 +144,17 @@ class ClangParser(parse.Parser):
         # Resolve dependencies
         for node, deps in dependencies.items():
             for ref, dt in deps:
-                # Check whether we actually know the target of the dependency
-                if ref not in mapping:
-                    # A dead AnalysisNode reference has no location, so probably not an issue.
-                    if not isinstance(ref, llvm.AnalysisNode):
-                        raise parse.ParseError("Found dependency reference to unregistered node.")
-                else:
-                    rnode = mapping[ref]
+                rnode = mapping.get(ref, None)
 
-                    # Add dependency to node dependencies
-                    if rnode != node:
-                        node.dependencies.add((rnode, dt))
+                # Add dependency to node dependencies, ignore if we have no mapping
+                if rnode is not None and rnode != node:
+                    node.dependencies.add(ir.Dependency(rnode, dt))
 
         # Return root of the tree
         return root
 
-    @staticmethod
-    def _parse_clang_node(cursor: clang.Cursor, parent: typing.Optional[ir.IRNode] = None) -> ir.IRNode:
+    @classmethod
+    def _parse_clang_node(cls, cursor: clang.Cursor, parent: typing.Optional[ir.IRNode] = None) -> ir.IRNode:
         """
         Parses a Clang AST node identified by a cursor into an IR node.
 
@@ -160,20 +162,57 @@ class ClangParser(parse.Parser):
         :param parent: The parent IR node.
         :return: The corresponding IR node.
         """
-        # Get location
-        location = ir.Location(str(cursor.location.file), int(cursor.location.line), int(cursor.location.column))
-
-        # Build node
-        node = ir.IRNode(
+        # Default node data
+        kwargs = dict(
             typ=cursor.kind.name,
             label=cursor.spelling,
             ref=cursor.get_usr(),
             parent=parent,
-            location=location,
+            location=cls._get_location(cursor),
             source_obj=cursor,
         )
 
+        # Overrides for specific kinds of nodes
+        if cursor.kind in cls._customizers:
+            cls._customizers[cursor.kind](cursor, kwargs)
+
+        # Build node
+        node = ir.IRNode(**kwargs)
+
         return node
+
+    @classmethod
+    def register_customizer(cls, *kinds: clang.CursorKind) -> typing.Callable[[Customizer], Customizer]:
+        """
+        Decorator for registering customizations for the creation of IR nodes from Clang AST cursors.
+
+        :param kinds: The Clang cursor kinds to use the customization for.
+        :return: The decorator for the customization function.
+        """
+        def decorator(func):
+            for kind in kinds:
+                if kind in cls._customizers:
+                    raise ValueError(f"Cannot add {func} as customizer for {kind}, another customizer was already"
+                                     f"registered.")
+                cls._customizers[kind] = func
+            return func
+        return decorator
+
+    @staticmethod
+    def _get_location(obj: typing.Union[clang.Cursor, clang.Token]) -> ir.Location:
+        """
+        Returns the location as IR location from a Clang object with a location associated with it.
+        """
+        location: clang.SourceLocation = obj.location
+        file: typing.Optional[clang.File] = location.file
+
+        if file is None:
+            cursor = obj if isinstance(obj, clang.Cursor) else obj.cursor
+            filename = cursor.translation_unit.spelling
+        else:
+            filename = file.name
+
+        return ir.Location(file=filename, line=location.line, column=location.column)
 
     @staticmethod
     def _get_references(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
@@ -210,3 +249,65 @@ class ClangParser(parse.Parser):
         if cursor.kind == clang.CursorKind.ENUM_DECL:
             for arg_cursor in cursor.walk_preorder():
                 yield arg_cursor
+
+
+@ClangParser.register_customizer(clang.CursorKind.TYPEDEF_DECL)
+def customize_typedef_decl(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
+    """Sets the label of a typedef to its underlying type."""
+    try:
+        kwargs['label'] = cursor.underlying_typedef_type.spelling
+    except AttributeError:
+        raise parse.ParseError("Unexpected error: typedef does not have an underlying type.")
+    return kwargs
+
+
+clang_literals = [
+    clang.CursorKind.INTEGER_LITERAL,
+    clang.CursorKind.FLOATING_LITERAL,
+    clang.CursorKind.IMAGINARY_LITERAL,
+    clang.CursorKind.STRING_LITERAL,
+    clang.CursorKind.CHARACTER_LITERAL,
+]
+
+
+@ClangParser.register_customizer(*clang_literals)
+def customize_literals(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
+    """Sets the label to the token value of the literal."""
+    try:
+        kwargs['label'] = ''.join(map(lambda x: x.spelling, cursor.get_tokens()))
+    except AttributeError:
+        raise parse.ParseError("Unexpected error: literal does not have any tokens.")
+    return kwargs
+
+
+clang_operators = [
+    clang.CursorKind.UNARY_OPERATOR,
+    clang.CursorKind.BINARY_OPERATOR,
+    clang.CursorKind.COMPOUND_ASSIGNMENT_OPERATOR,
+    clang.CursorKind.CONDITIONAL_OPERATOR,
+]
+
+
+@ClangParser.register_customizer(*clang_operators)
+def customize_operator(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
+    """Sets the label and location to that of the actual operator token."""
+    tokens = {f"{t.location.line}:{t.location.column}:{t.spelling}": t for t in cursor.get_tokens()}
+
+    # Find token not in any of the child ranges - that should be the operator
+    for child in cursor.get_children():
+        for t in child.get_tokens():
+            string = f"{t.location.line}:{t.location.column}:{t.spelling}"
+            if string in tokens:
+                del tokens[string]
+
+    if len(tokens) < 1:
+        raise parse.ParseError("Unexpected error: operator does not have any non-child tokens.")
+
+    tokens = list(map(lambda y: y[1], sorted(tokens.items(), key=lambda x: x[0])))
+
+    if len(tokens) > 0:
+        kwargs['location'] = ClangParser._get_location(tokens[0])
+
+    kwargs['label'] = ''.join(map(lambda x: x.spelling, tokens))
+    print(kwargs['parent'], kwargs['typ'], kwargs['label'], kwargs['location'].line, kwargs['location'].column)
+    return kwargs
