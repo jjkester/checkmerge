@@ -147,7 +147,7 @@ class AnalysisParser(object):
         self._dependency_refs[name] = self._instruction
 
         # Set dependencies
-        if 'dependencies' in data:
+        if 'dependencies' in data and data['dependencies'] is not None:
             dependencies = data['dependencies']
 
             assert isinstance(dependencies, dict)
