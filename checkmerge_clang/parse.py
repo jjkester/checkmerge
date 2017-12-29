@@ -73,13 +73,15 @@ class ClangParser(parse.Parser):
             raise parse.ParseError(f"Unable to parse analysis file {analysis_path} for {path}."
                                    f"An error occured while reading the file.")
 
-        return [self._walk_ast(tu.cursor, analysis)]
+        return [self.walk_ast(tu.cursor, analysis)]
 
-    def _walk_ast(self, cursor: clang.Cursor, analysis: typing.Iterable[llvm.AnalysisNode]) -> ir.IRNode:
+    def walk_ast(self, cursor: clang.Cursor, analysis: typing.Iterable[llvm.AnalysisNode]) -> ir.IRNode:
         """
-        Iterates over the AST to build an IR tree.
+        Iterates over the AST to build an IR tree. The provided analysis nodes are matched to nodes from the AST and the
+        analysis results encoded in the analysis nodes is added to the IR tree.
 
         :param cursor: The cursor for the root node of the AST.
+        :param analysis: The LLVM analysis results.
         """
         # Lookup table for analysis
         analysis_lookup = collections.defaultdict(set)
@@ -111,24 +113,26 @@ class ClangParser(parse.Parser):
                 cursor, parent = walk_queue.get_nowait()
 
                 # Build IR node from cursor
-                node = self._parse_clang_node(cursor, parent)
+                node = self.parse_clang_node(cursor, parent)
 
                 # Set as root if appropriate
                 if root is None:
                     root = node
 
                 # Add reference dependencies if appropriate
-                dependencies[node].update(((d.canonical.hash, ir.DependencyType.REFERENCE) for d in self._get_references(cursor)))
+                dependencies[node].update(((d.canonical.hash, ir.DependencyType.REFERENCE)
+                                           for d in self.get_references(cursor)))
 
                 # Add arguments of calls and function definitions as dependency
-                dependencies[node].update(((d.canonical.hash, ir.DependencyType.ARGUMENT) for d in self._get_arguments(cursor)))
+                dependencies[node].update(((d.canonical.hash, ir.DependencyType.ARGUMENT)
+                                           for d in self.get_arguments(cursor)))
 
                 # Map cursor to node for dependency resolving
                 mapping[cursor.canonical.hash] = node
 
                 # Find analysis info
                 for analysis_node in analysis_lookup.get(node.location, self.empty_set):
-                    # Add to mapping
+                    # Map analysis node to IR node for resolving references
                     mapping[analysis_node] = node
 
                     # Add dependencies
@@ -154,7 +158,7 @@ class ClangParser(parse.Parser):
         return root
 
     @classmethod
-    def _parse_clang_node(cls, cursor: clang.Cursor, parent: typing.Optional[ir.IRNode] = None) -> ir.IRNode:
+    def parse_clang_node(cls, cursor: clang.Cursor, parent: typing.Optional[ir.IRNode] = None) -> ir.IRNode:
         """
         Parses a Clang AST node identified by a cursor into an IR node.
 
@@ -168,7 +172,7 @@ class ClangParser(parse.Parser):
             label=cursor.spelling,
             ref=cursor.get_usr(),
             parent=parent,
-            location=cls._get_location(cursor),
+            location=cls.get_location(cursor),
             source_obj=cursor,
         )
 
@@ -199,7 +203,7 @@ class ClangParser(parse.Parser):
         return decorator
 
     @staticmethod
-    def _get_location(obj: typing.Union[clang.Cursor, clang.Token]) -> ir.Location:
+    def get_location(obj: typing.Union[clang.Cursor, clang.Token]) -> ir.Location:
         """
         Returns the location as IR location from a Clang object with a location associated with it.
         """
@@ -215,7 +219,7 @@ class ClangParser(parse.Parser):
         return ir.Location(file=filename, line=location.line, column=location.column)
 
     @staticmethod
-    def _get_references(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
+    def get_references(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
         """
         Retrieves the reference dependencies from the AST node pointed to by the given cursor.
 
@@ -235,7 +239,7 @@ class ClangParser(parse.Parser):
             yield declaration
 
     @staticmethod
-    def _get_arguments(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
+    def get_arguments(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
         """
         Retrieves the argument dependencies from the AST node pointed to by the given cursor.
 
@@ -253,7 +257,10 @@ class ClangParser(parse.Parser):
 
 @ClangParser.register_customizer(clang.CursorKind.TYPEDEF_DECL)
 def customize_typedef_decl(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
-    """Sets the label of a typedef to its underlying type."""
+    """
+    Sets the label of a typedef to its underlying type. Without this customization the label would be the name of the
+    typedef which is not representative of possible changes to the typedef.
+    """
     try:
         kwargs['label'] = cursor.underlying_typedef_type.spelling
     except AttributeError:
@@ -272,7 +279,10 @@ clang_literals = [
 
 @ClangParser.register_customizer(*clang_literals)
 def customize_literals(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
-    """Sets the label to the token value of the literal."""
+    """
+    Sets the label to the token value of the literal. Without this customization a literal would not have a label at
+    all.
+    """
     try:
         kwargs['label'] = ''.join(map(lambda x: x.spelling, cursor.get_tokens()))
     except AttributeError:
@@ -290,24 +300,26 @@ clang_operators = [
 
 @ClangParser.register_customizer(*clang_operators)
 def customize_operator(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
-    """Sets the label and location to that of the actual operator token."""
+    """
+    Sets the label and location to that of the actual operator token. Without this customization an operator would not
+    have a label. The libclang library does not expose the proper function for this.
+    """
+    # Get all tokens
     tokens = {f"{t.location.line}:{t.location.column}:{t.spelling}": t for t in cursor.get_tokens()}
 
-    # Find token not in any of the child ranges - that should be the operator
+    # Remove tokens of children to be left with the actual operator token(s)
     for child in cursor.get_children():
-        for t in child.get_tokens():
-            string = f"{t.location.line}:{t.location.column}:{t.spelling}"
-            if string in tokens:
-                del tokens[string]
+        for key in (f"{t.location.line}:{t.location.column}:{t.spelling}" for t in child.get_tokens()):
+            tokens.pop(key, None)
 
     if len(tokens) < 1:
         raise parse.ParseError("Unexpected error: operator does not have any non-child tokens.")
 
+    # Get token objects ordered properly
     tokens = list(map(lambda y: y[1], sorted(tokens.items(), key=lambda x: x[0])))
 
     if len(tokens) > 0:
-        kwargs['location'] = ClangParser._get_location(tokens[0])
+        kwargs['location'] = ClangParser.get_location(tokens[0])
 
     kwargs['label'] = ''.join(map(lambda x: x.spelling, tokens))
-    print(kwargs['parent'], kwargs['typ'], kwargs['label'], kwargs['location'].line, kwargs['location'].column)
     return kwargs
