@@ -1,4 +1,5 @@
 import typing
+from functools import total_ordering
 
 
 class Metadata(object):
@@ -7,6 +8,7 @@ class Metadata(object):
     """
 
 
+@total_ordering
 class Location(object):
     """
     Location in source code.
@@ -43,7 +45,7 @@ class Location(object):
 
     def __eq__(self, other):
         if not isinstance(other, Location):
-            return super(Location, self).__eq__(other)
+            return NotImplemented
 
         # Test lines and columns
         eq = self.line == other.line and self.column == other.column
@@ -54,36 +56,19 @@ class Location(object):
 
         return eq
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
     def __lt__(self, other):
-        if isinstance(other, Location):
-            if self.file and other.file:
-                return self.as_tuple() < other.as_tuple()
-            return self.coordinates < other.coordinates
-        return super(Location, self).__lt__(other)
+        if not isinstance(other, Location):
+            return NotImplemented
+        if self.file and other.file:
+            return self.as_tuple() < other.as_tuple()
+        return self.coordinates < other.coordinates
 
     def __le__(self, other):
-        if isinstance(other, Location):
-            if self.file and other.file:
-                return self.as_tuple() <= other.as_tuple()
-            return self.coordinates <= other.coordinates
-        return super(Location, self).__le__(other)
-
-    def __gt__(self, other):
-        if isinstance(other, Location):
-            if self.file and other.file:
-                return self.as_tuple() > other.as_tuple()
-            return self.coordinates > other.coordinates
-        return super(Location, self).__gt__(other)
-
-    def __ge__(self, other):
-        if isinstance(other, Location):
-            if self.file and other.file:
-                return self.as_tuple() >= other.as_tuple()
-            return self.coordinates >= other.coordinates
-        return super(Location, self).__ge__(other)
+        if not isinstance(other, Location):
+            return NotImplemented
+        if self.file and other.file:
+            return self.as_tuple() <= other.as_tuple()
+        return self.coordinates <= other.coordinates
 
     def __hash__(self):
         return hash(str(self))

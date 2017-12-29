@@ -3,6 +3,7 @@ import enum
 import hashlib
 import typing
 import weakref
+from functools import total_ordering
 
 from cached_property import cached_property
 
@@ -54,6 +55,7 @@ class DependencyType(enum.Enum):
 Dependency = collections.namedtuple('Dependency', ('node', 'type'))
 
 
+@total_ordering
 class IRNode(object):
     """
     Internal representation of an abstract syntax tree (AST) node.
@@ -202,24 +204,14 @@ class IRNode(object):
         return f"<{self.__class__.__name__} {str(self)}>"
 
     def __lt__(self, other):
-        if isinstance(other, IRNode):
-            return self.height < other.height
-        return super(IRNode, self).__lt__(other)
+        if not isinstance(other, IRNode):
+            return NotImplemented
+        return self.height < other.height
 
     def __le__(self, other):
-        if isinstance(other, IRNode):
-            return self.height <= other.height
-        return super(IRNode, self).__le__(other)
-
-    def __gt__(self, other):
-        if isinstance(other, IRNode):
-            return self.height > other.height
-        return super(IRNode, self).__gt__(other)
-
-    def __ge__(self, other):
-        if isinstance(other, IRNode):
-            return self.height >= other.height
-        return super(IRNode, self).__ge__(other)
+        if not isinstance(other, IRNode):
+            return NotImplemented
+        return self.height <= other.height
 
     def __iter__(self):
         return iter(self.children)
