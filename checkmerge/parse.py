@@ -16,6 +16,8 @@ class Parser(object):
     """
     Abstract class for parser front ends of CheckMerge.
     """
+    key: str = ''  # Unique identifier for this parser.
+
     def parse(self, obj: object) -> typing.List[tree.IRNode]:
         """
         Parses the input into CheckMerge intermediate representation (IR). May raise a TypeError if the given object is

@@ -23,6 +23,8 @@ class ClangParser(parse.Parser):
     methods have been implemented to use a temporary file. Therefore, using `parse_stream` with a source file would mean
     a lot of unnecessary IO overhead.
     """
+    key = 'clang'
+
     # Empty list for efficiency purposes
     empty_set: typing.Set[None] = set()
 
