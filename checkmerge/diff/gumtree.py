@@ -1,6 +1,7 @@
 import itertools
 import typing
 
+import pylev3
 import zss
 
 from checkmerge.diff.base import DiffAlgorithm, DiffMapping, DiffResult
@@ -172,7 +173,8 @@ class GumTreeDiff(DiffAlgorithm):
         candidates = {}
 
         for t1, t2 in itertools.product(base.subtree(), other.subtree()):
-            distance = zss.simple_distance(t1, t2, get_children=lambda n: n.children, get_label=lambda n: n.name)
+            distance = zss.simple_distance(t1, t2, get_children=lambda n: n.children, get_label=lambda n: n.name,
+                                           label_dist=pylev3.Levenshtein.wfi)
 
             if t1 not in candidates or candidates[t1][0] > distance:
                 candidates[t1] = (distance, t2)

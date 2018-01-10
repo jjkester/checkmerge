@@ -1,4 +1,5 @@
 click
 graphviz
+pylev3
 PyYAML ~= 3.0
 zss

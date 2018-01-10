@@ -53,7 +53,7 @@ class OriginalGumTreeTestCase(unittest.TestCase):
         diff = GumTreeDiff(min_height=1, max_size=8)
         mapping = diff(self.t1, self.t2).mapping
 
-        self.assertEqual(6, len(mapping))
+        self.assertEqual(7, len(mapping))
 
 
 class EuclidGumTreeTestCase(unittest.TestCase):
@@ -188,10 +188,12 @@ class EuclidGumTreeTestCase(unittest.TestCase):
         self.assertIn((t1[2][1], t2[2][1]), mapping)  # Return
         self.assertIn((t1[2][1][0], t2[2][1][0]), mapping)  # VariableRef: a
 
-        # Equal subtrees: None
+        # Equal subtrees
+        self.assertIn((t1[2][0][1][0][0][0], t2[2][0][1][1][0]), mapping)  # Operator: > / Operator: %
+        self.assertIn((t1[2][0][1][0][1][0], t2[2][0][1][1]), mapping)  # Assignment: a / Assignment: b
 
         # Counts
-        self.assertEqual(12, len(mapping))
+        self.assertEqual(14, len(mapping))
 
     def test_t1_t2_relaxed(self):
         t1 = self.t1
@@ -216,13 +218,11 @@ class EuclidGumTreeTestCase(unittest.TestCase):
         self.assertIn((t1[2][1][0], t2[2][1][0]), mapping)  # VariableRef: a
 
         # Equal subtrees
-        self.assertIn(t2[2][0][1][0][0], map(lambda x: x[1], mapping))  # VariableRef: b
-        self.assertIn(t2[2][0][1][1][0], map(lambda x: x[1], mapping))  # Operator: %
-        self.assertIn(t2[2][0][1][1][0][0], map(lambda x: x[1], mapping))  # VariableRef: a
-        self.assertIn(t2[2][0][1][1][0][1], map(lambda x: x[1], mapping))  # VariableRef: b
+        self.assertIn((t1[2][0][1][0][0][0], t2[2][0][1][1][0]), mapping)  # Operator: > / Operator: %
+        self.assertIn((t1[2][0][1][0][1][0], t2[2][0][1][1]), mapping)  # Assignment: a / Assignment: b
 
         # Counts
-        self.assertEqual(16, len(mapping))
+        self.assertEqual(17, len(mapping))
 
     def test_t2_t3(self):
         t1 = self.t2
