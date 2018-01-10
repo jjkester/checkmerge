@@ -35,23 +35,23 @@ class OriginalGumTreeTestCase(unittest.TestCase):
 
     def test_min_height_threshold(self):
         diff = GumTreeDiff(min_height=1, max_size=0)
-        mapping = diff(self.t1, self.t2)
+        mapping = diff(self.t1, self.t2).mapping
 
         self.assertEqual(5, len(mapping))
 
         diff = GumTreeDiff(min_height=2, max_size=0)
-        mapping = diff(self.t1, self.t2)
+        mapping = diff(self.t1, self.t2).mapping
 
         self.assertEqual(4, len(mapping))
 
     def test_max_size_threshold(self):
         diff = GumTreeDiff(min_height=1, max_size=0)
-        mapping = diff(self.t1, self.t2)
+        mapping = diff(self.t1, self.t2).mapping
 
         self.assertEqual(5, len(mapping))
 
         diff = GumTreeDiff(min_height=1, max_size=8)
-        mapping = diff(self.t1, self.t2)
+        mapping = diff(self.t1, self.t2).mapping
 
         self.assertEqual(6, len(mapping))
 
@@ -172,7 +172,7 @@ class EuclidGumTreeTestCase(unittest.TestCase):
 
         diff = GumTreeDiff()
         result = diff(t1, t2)
-        mapping = set(result.items())
+        mapping = set(result.mapping.items())
 
         # Top down equalities
         self.assertIn((t1, t2), mapping)  # FunctionDef: gcd
@@ -199,7 +199,7 @@ class EuclidGumTreeTestCase(unittest.TestCase):
 
         diff = GumTreeDiff(min_height=1)
         result = diff(t1, t2)
-        mapping = set(result.items())
+        mapping = set(result.mapping.items())
 
         # Top down equalities
         self.assertIn((t1, t2), mapping)  # FunctionDef: gcd
@@ -230,7 +230,7 @@ class EuclidGumTreeTestCase(unittest.TestCase):
 
         diff = GumTreeDiff()
         result = diff(t1, t2)
-        mapping = set(result.items())
+        mapping = set(result.mapping.items())
 
         # Top down equalities
         self.assertIn((t1, t2), mapping)  # FunctionDef: gcd

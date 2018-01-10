@@ -3,7 +3,7 @@ import typing
 
 import zss
 
-from checkmerge.diff.base import DiffAlgorithm, DiffMapping
+from checkmerge.diff.base import DiffAlgorithm, DiffMapping, DiffResult
 from checkmerge.ir import tree
 from checkmerge.util.collections import PriorityList
 
@@ -34,7 +34,7 @@ class GumTreeDiff(DiffAlgorithm):
         self.min_dice = min_dice
         self.max_size = max_size
 
-    def __call__(self, base: tree.IRNode, other: tree.IRNode) -> DiffMapping:
+    def __call__(self, base: tree.IRNode, other: tree.IRNode) -> DiffResult:
         """
         Runs the GumTree algorithm to find a mapping between the nodes of both trees.
 
@@ -42,7 +42,9 @@ class GumTreeDiff(DiffAlgorithm):
         :param other: The tree to compare.
         :return: A mapping between nodes from the base tree to nodes from the other tree.
         """
-        return self.bottom_up(base, other, self.top_down(base, other))
+        mapping = self.top_down(base, other)
+        mapping = self.bottom_up(base, other, mapping)
+        return DiffResult(base, other, mapping)
 
     def top_down(self, base: tree.IRNode, other: tree.IRNode) -> DiffMapping:
         """
@@ -164,7 +166,8 @@ class GumTreeDiff(DiffAlgorithm):
 
         The optimization algorithm tries to find mappings between nodes based on the edit distance.
 
-        The Zhang Shasha algorithm is used to calculate the edit distance.
+        The Zhang-Shasha algorithm is used to calculate the edit distance with the Wagner-Fischer algorithm for the
+        labels.
         """
         candidates = {}
 
