@@ -93,9 +93,9 @@ class GumTreeDiff(DiffAlgorithm):
                             list(filter(lambda tx: self.isomorphic(tx, t2) and tx != t1, base.subtree())):  # line 14
                         a.append((t1, t2))  # line 15
                     else:
-                        # TODO This loop is inefficient but guaranteed to have the desired effect.
-                        for n1, n2 in filter(lambda x: self.isomorphic(*x),
-                                             itertools.product(t1.subtree(), t2.subtree())):
+                        # Because the trees are isomorphic walking them in the same order results in the correct
+                        # mapping between the nodes
+                        for n1, n2 in zip(t1.subtree(), t2.subtree()):
                             m[n1] = n2  # line 17
 
                 # Add the unmapped subtrees to the queue

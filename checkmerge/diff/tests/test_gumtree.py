@@ -248,3 +248,15 @@ class EuclidGumTreeTestCase(unittest.TestCase):
 
         # Counts
         self.assertEqual(10, len(mapping))
+
+    def test_equal(self):
+        t = self.t1
+        diff = GumTreeDiff()
+        result = diff(t, t)
+
+        n = len(list(t.subtree()))
+
+        self.assertEqual(n, len(result.mapping))
+        self.assertEqual(n, len(set(result.mapping.keys())))  # Test uniqueness of keys
+        self.assertEqual(n, len(set(result.mapping.values())))   # Test uniqueness of values
+        self.assertEqual(0, len(result.changes))
