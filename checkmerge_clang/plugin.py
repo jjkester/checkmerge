@@ -16,3 +16,4 @@ class ClangPlugin(plugins.Plugin):
 
     def setup(self):
         configure()
+        super(ClangPlugin, self).setup()
