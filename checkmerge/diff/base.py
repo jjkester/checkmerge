@@ -1,3 +1,4 @@
+import collections
 import enum
 import typing
 
@@ -6,7 +7,8 @@ from checkmerge.ir import tree
 
 # Diff algorithm types
 DiffMapping = typing.Dict[tree.IRNode, tree.IRNode]
-DiffChanges = typing.Dict[tree.IRNode, "EditOperation"]
+ChangeType = typing.Type[typing.Tuple[tree.IRNode, tree.IRNode, "EditOperation"]]
+DiffChanges = typing.List["Change"]
 
 
 class DiffAlgorithm(object):
@@ -33,6 +35,9 @@ class EditOperation(enum.Enum):
     RENAME = '~'
 
 
+Change: ChangeType = collections.namedtuple('Change', ('old', 'new', 'op'))
+
+
 class DiffResult(object):
     """
     Result of a tree diff operation.
@@ -43,6 +48,7 @@ class DiffResult(object):
         self._other: tree.IRNode = other
         self._mapping: DiffMapping = mapping
         self._changes: typing.Optional[DiffChanges] = changes
+        self._reduced_changes: typing.Optional[DiffChanges] = None
 
     @property
     def base(self) -> tree.IRNode:
@@ -59,8 +65,14 @@ class DiffResult(object):
     @property
     def changes(self) -> DiffChanges:
         if self._changes is None:
-            self._changes = {n: o for n, o in calculate_changes(self.base, self.other, self.mapping)}
+            self._changes = list(calculate_changes(self.base, self.other, self.mapping))
         return self._changes
+
+    @property
+    def reduced_changes(self) -> DiffChanges:
+        if self._reduced_changes is None:
+            self._reduced_changes = list(reduce_changes(self.changes))
+        return self._reduced_changes
 
 
 def calculate_changes(base: tree.IRNode, other: tree.IRNode, mapping: DiffMapping):
@@ -74,9 +86,26 @@ def calculate_changes(base: tree.IRNode, other: tree.IRNode, mapping: DiffMappin
     """
     for node in base.subtree():
         if node not in mapping.keys():
-            yield (node, EditOperation.DELETE)
+            yield Change(node, None, EditOperation.DELETE)
         elif node.name != mapping[node].name:
-            yield (node, EditOperation.RENAME)
+            yield Change(node, mapping[node], EditOperation.RENAME)
     for node in other.subtree():
         if node not in mapping.values():
-            yield (node, EditOperation.INSERT)
+            yield Change(None, node, EditOperation.INSERT)
+
+
+def reduce_changes(changes: DiffChanges):
+    """
+    Reduces the changes to insert and delete operations.
+
+    Contrary to what 'reduce' implicates, the number of changes grows by this operation.
+
+    :param changes: The changes to reduce.
+    :return: The reduced changes.
+    """
+    for change in changes:
+        if change.op == EditOperation.RENAME:
+            yield Change(change.old, None, EditOperation.DELETE)
+            yield Change(None, change.new, EditOperation.INSERT)
+        else:
+            yield change
