@@ -2,9 +2,10 @@ from checkmerge.cli import click, cli
 from checkmerge.plugins import registry
 
 
-@cli.command('list-plugins', help="Lists the available plugins.")
+@cli.command('list-plugins')
 @click.option('--disabled', is_flag=True, default=False, help="Show disabled plugins.")
 def list_plugins(disabled):
+    """Lists the available plugins."""
     all_plugins = [registry.get_instance(plugin) for plugin in registry.registry.values()]
     plugins = [plugin for plugin in all_plugins if plugin.disabled is disabled]
 
@@ -20,8 +21,9 @@ def list_plugins(disabled):
             click.echo("No plugins available. Please check your PYTHONPATH.")
 
 
-@cli.command('list-parsers', help="Lists the available parsers.")
+@cli.command('list-parsers')
 def list_parsers():
+    """Lists the available parsers."""
     parsers = registry.parsers.all()
 
     if parsers:

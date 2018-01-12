@@ -1,9 +1,14 @@
 import sys
 import typing
+from contextlib import contextmanager
+from copy import copy
 
-from checkmerge import plugins, version, parse, diff
+from checkmerge import analysis as _analysis, diff as _diff, ir, parse, plugins, version
 from checkmerge.diff import gumtree
-from checkmerge.ir import tree
+
+
+# Type variables
+T = typing.TypeVar('T')
 
 
 def _format_version(*args: typing.Union[int, str]) -> str:
@@ -75,6 +80,7 @@ class CheckMerge(object, metaclass=CheckMergeMeta):
     """
     def __init__(self):
         self._parser: typing.Optional[typing.Type[parse.Parser]] = None
+        self._options: typing.Dict[str, typing.Any] = {}
 
     @property
     def parser(self) -> typing.Optional[typing.Type[parse.Parser]]:
@@ -90,16 +96,147 @@ class CheckMerge(object, metaclass=CheckMergeMeta):
         self._parser = parser
 
     @property
-    def diff_algorithm(self) -> typing.Optional[typing.Type[diff.DiffAlgorithm]]:
+    def diff_algorithm(self) -> typing.Optional[typing.Type[_diff.DiffAlgorithm]]:
         return gumtree.GumTreeDiff
 
-    def parse(self, path: str) -> typing.Optional[tree.IRNode]:
-        assert self.parser is not None
-        result = self.parser().parse_file(path)
-        return result[0] if len(result) > 0 else None
+    @property
+    def options(self) -> typing.Dict[str, typing.Any]:
+        return copy(self._options)
 
-    def diff(self, base: tree.IRNode, other: tree.IRNode) -> diff.DiffResult:
-        assert self.diff_algorithm is not None
-        assert base is not None and other is not None
-        diff_func: diff.DiffAlgorithm = self.diff_algorithm()
-        return diff_func(base, other)
+    def set_options(self, **kwargs) -> None:
+        self._options.update(**kwargs)
+
+    def build_config(self) -> "RunConfig":
+        """
+        Builds and returns a run configuration from the settings in this app.
+        """
+        return RunConfig(
+            parse_cls=self.parser,
+            diff_cls=self.diff_algorithm,
+            **self.options,
+        )
+
+
+class RunConfig(object):
+    """
+    A run configuration. When configured using the correct classes this object can be used to declaratively define the
+    analysis that should be carried out.
+    """
+    def __init__(self, parse_cls: typing.Type[parse.Parser], diff_cls: typing.Type[_diff.DiffAlgorithm], **options):
+        # Set initial fields
+        self.parser = parse_cls
+        self.differ = diff_cls
+        self.options = options
+
+        # Initialize data fields
+        self._base_path: str = None
+        self._other_path: str = None
+        self._base_tree: ir.IRNode = None
+        self._other_tree: ir.IRNode = None
+        self._diff_result: _diff.DiffResult = None
+        self._analysis_chain: typing.List[_analysis.AnalysisResultGenerator] = []
+
+    def parse(self, base_path: str, other_path: str) -> "RunConfig":
+        """
+        Parses two programs into internal representation trees.
+
+        :param base_path: The path to the base program to parse.
+        :param other_path: The path to the other program to parse.
+        """
+        # Copy instance
+        rc = copy(self)
+
+        # Construct parser
+        parser = rc.parser()
+
+        # Parse trees
+        with rc._args((base_path, '_base_path'), (other_path, '_other_path')) as (base_path, other_path):
+            base_tree = parser.parse_file(base_path)[0]
+            other_tree = parser.parse_file(other_path)[0]
+
+        # Store results
+        rc._base_tree, rc._other_tree = base_tree, other_tree
+
+        return rc
+
+    def diff(self, base: typing.Optional[ir.IRNode] = None, other: typing.Optional[ir.IRNode] = None) -> "RunConfig":
+        """
+        Calculates the difference between two internal representation trees.
+
+        :param base: The base tree.
+        :param other: The other tree.
+        """
+        # Copy instance
+        rc = copy(self)
+
+        # Construct differ
+        differ = rc.differ()
+
+        # Diff trees
+        with rc._arg(base, '_base_tree') as base, rc._arg(other, '_other_tree') as other:
+            result = differ(base, other)
+
+        # Store results
+        rc._diff_result = result
+
+        return rc
+
+    def analyze(self, analysis_cls: typing.Type[_analysis.Analysis], base: typing.Optional[ir.IRNode] = None,
+                other: typing.Optional[ir.IRNode] = None,
+                changes: typing.Optional[_diff.DiffResult] = None) -> "RunConfig":
+        """
+        Schedules the provided analysis. Evaluation is lazy.
+
+        :param analysis_cls: The analysis class to use.
+        :param base: The base tree.
+        :param other: The other tree.
+        :param changes: The diff result.
+        """
+        # Copy instance
+        rc = copy(self)
+
+        # Construct analyzer
+        analysis = analysis_cls()
+
+        # Store analysis generator
+        with rc._args((base, '_base_tree'), (other, '_other_tree'), (changes, '_diff_result')) as args:
+            self._analysis_chain.append(analysis(*args))
+
+        return rc
+
+    def trees(self) -> typing.Tuple[ir.IRNode, ir.IRNode]:
+        """
+        Returns the parsed trees.
+        """
+        if self._base_tree is None or self._other_tree is None:
+            raise ValueError("There are no parsed trees, run parse() first.")
+        return self._base_tree, self._other_tree
+
+    def changes(self) -> _diff.DiffResult:
+        """
+        Returns the changes between the trees.
+        """
+        if self._diff_result is None:
+            raise ValueError("There is no diff result, run diff() first.")
+        return self._diff_result
+
+    def analysis(self) -> _analysis.AnalysisResultGenerator:
+        """
+        Returns a generator yielding the analysis results.
+        """
+        for generator in self._analysis_chain:
+            yield from generator
+
+    @contextmanager
+    def _arg(self, value: T, key: str) -> T:
+        if value is None:
+            value = getattr(self, key, None)
+        yield value
+        setattr(self, key, value)
+
+    @contextmanager
+    def _args(self, *args: typing.Tuple[T, str]) -> T:
+        values = tuple((getattr(self, k) if v is None else v for v, k in args))
+        yield values
+        for v, k in args:
+            setattr(self, k, v)

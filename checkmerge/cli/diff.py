@@ -1,8 +1,9 @@
 import collections
 
 from checkmerge.app import CheckMerge
-from checkmerge.cli import click, cli, error
+from checkmerge.cli import click, cli, error, pass_app
 from checkmerge.diff.base import EditOperation
+from checkmerge.parse import ParseError
 
 
 @cli.command()
@@ -10,11 +11,12 @@ from checkmerge.diff.base import EditOperation
               help="The parser to use. Run `list-parsers` to see the available parsers.")
 @click.argument('base', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.argument('compared', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
-@click.pass_context
-def diff(ctx: click.Context, parser, base, compared):
-    # Get app
-    app: CheckMerge = ctx.ensure_object(CheckMerge)
+@pass_app
+def diff(app: CheckMerge, parser, base, compared):
+    """Calculate and output the differences between the given programs.
 
+    The difference between the programs is calculated using the CheckMerge abstract syntax tree (AST) based diff
+    algorithm."""
     # Set parser
     try:
         app.parser = parser
@@ -27,12 +29,12 @@ def diff(ctx: click.Context, parser, base, compared):
 
     # Do diff
     try:
-        t1 = app.parse(base)
-        t2 = app.parse(compared)
-    except Exception as e:
+        config = app.build_config()
+        result = config.parse(base, compared).diff().changes()
+    except ParseError as e:
         return error(e)
 
-    result = app.diff(t1, t2)
+    # Format changes
     changes = result.reduced_changes
 
     op_sign = collections.defaultdict(lambda x: '??')
