@@ -176,6 +176,9 @@ class RunConfig(object):
         with rc._arg(base, '_base_tree') as base, rc._arg(other, '_other_tree') as other:
             result = differ(base, other)
 
+        # Tag nodes with changes
+        _diff.tag_nodes(result)
+
         # Store results
         rc._diff_result = result
 
@@ -200,7 +203,7 @@ class RunConfig(object):
 
         # Store analysis generator
         with rc._args((base, '_base_tree'), (other, '_other_tree'), (changes, '_diff_result')) as args:
-            self._analysis_chain.append(analysis(*args))
+            rc._analysis_chain.append(analysis(*args))
 
         return rc
 
@@ -238,5 +241,5 @@ class RunConfig(object):
     def _args(self, *args: typing.Tuple[T, str]) -> T:
         values = tuple((getattr(self, k) if v is None else v for v, k in args))
         yield values
-        for v, k in args:
+        for k, v in zip((k for v, k in args), values):
             setattr(self, k, v)

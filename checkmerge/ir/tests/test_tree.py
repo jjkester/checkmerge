@@ -1,6 +1,6 @@
 import unittest
 
-from checkmerge.ir.tree import IRNode
+from checkmerge.ir.tree import IRNode, Dependency, DependencyType
 
 
 class IRNodeTestCase(unittest.TestCase):
@@ -48,3 +48,49 @@ class IRNodeTestCase(unittest.TestCase):
                          list(self.root.subtree()))
         self.assertEqual([self.ll, self.lrl, self.lrr, self.lr, self.l, self.rrl, self.rr, self.r, self.root],
                          list(self.root.subtree(reverse=True)))
+
+    def test_dependencies(self):
+        """Tests adding and querying dependencies."""
+        # Add dependencies
+        self.ll.add_dependencies(Dependency(self.lr, DependencyType.FLOW))
+        self.ll.add_dependencies(Dependency(self.lr, DependencyType.REFERENCE))
+        self.lrl.add_dependencies(Dependency(self.r, DependencyType.REFERENCE))
+        self.rrl.add_dependencies(Dependency(self.lrl, DependencyType.REFERENCE))
+
+        # Test dependencies
+        self.assertEqual(set(), self.root.dependencies)
+        self.assertEqual(set(), self.root.reverse_dependencies)
+        self.assertEqual(set(), self.l.dependencies)
+        self.assertEqual(set(), self.l.reverse_dependencies)
+        self.assertEqual({Dependency(self.lr, DependencyType.FLOW), Dependency(self.lr, DependencyType.REFERENCE)},
+                         self.ll.dependencies)
+        self.assertEqual(set(), self.ll.reverse_dependencies)
+        self.assertEqual(set(), self.lr.dependencies)
+        self.assertEqual({Dependency(self.ll, DependencyType.FLOW), Dependency(self.ll, DependencyType.REFERENCE)},
+                         self.lr.reverse_dependencies)
+        self.assertEqual({Dependency(self.r, DependencyType.REFERENCE)}, self.lrl.dependencies)
+        self.assertEqual({Dependency(self.rrl, DependencyType.REFERENCE)}, self.lrl.reverse_dependencies)
+        self.assertEqual(set(), self.lrr.dependencies)
+        self.assertEqual(set(), self.lrr.reverse_dependencies)
+        self.assertEqual(set(), self.r.dependencies)
+        self.assertEqual({Dependency(self.lrl, DependencyType.REFERENCE)}, self.r.reverse_dependencies)
+        self.assertEqual(set(), self.rr.dependencies)
+        self.assertEqual(set(), self.rr.reverse_dependencies)
+        self.assertEqual({Dependency(self.lrl, DependencyType.REFERENCE)}, self.rrl.dependencies)
+        self.assertEqual(set(), self.rrl.reverse_dependencies)
+
+        # Test recursive dependencies
+        self.assertEqual(set(), set(self.l.recursive_dependencies()))
+        self.assertEqual({self.lrl, self.rrl}, set(self.r.recursive_reverse_dependencies()))
+        self.assertEqual({self.lrl, self.lrr, self.r}, set(self.lr.recursive_dependencies(recurse_memory_ops=True)))
+
+        # Test memory operation detection
+        self.assertFalse(self.root.is_memory_operation)
+        self.assertFalse(self.l.is_memory_operation)
+        self.assertTrue(self.ll.is_memory_operation)
+        self.assertTrue(self.lr.is_memory_operation)
+        self.assertFalse(self.lrl.is_memory_operation)
+        self.assertFalse(self.lrr.is_memory_operation)
+        self.assertFalse(self.r.is_memory_operation)
+        self.assertFalse(self.rr.is_memory_operation)
+        self.assertFalse(self.rrl.is_memory_operation)

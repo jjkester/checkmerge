@@ -7,7 +7,7 @@ from functools import total_ordering
 
 from cached_property import cached_property
 
-from checkmerge.ir.metadata import Metadata, Location
+from checkmerge.ir.metadata import Metadata, Location, Range
 
 
 class DependencyType(enum.Enum):
@@ -50,6 +50,9 @@ class DependencyType(enum.Enum):
     def __str__(self):
         return self._name_.capitalize()
 
+    def is_memory_dependency(self):
+        return self in (DependencyType.FLOW, DependencyType.ANTI, DependencyType.INPUT, DependencyType.OUTPUT)
+
 
 # Generate a Dependency type with the named tuple factory
 Dependency = collections.namedtuple('Dependency', ('node', 'type'))
@@ -63,16 +66,17 @@ class IRNode(object):
     def __init__(self, typ: str, label: typing.Optional[str] = None, ref: typing.Optional[str] = None,
                  parent: typing.Optional["IRNode"] = None,
                  children: typing.Optional[typing.List["IRNode"]] = None,
-                 location: typing.Optional[Location] = None,
+                 source_range: typing.Optional[Range] = None,
                  metadata: typing.Optional[typing.List[Metadata]] = None,
-                 source_obj: typing.Optional[typing.Any] = None):
+                 source_obj: typing.Optional[typing.Any] = None,
+                 is_memory_operation: typing.Optional[bool] = None):
         """
         :param typ: The name of the type of the node.
         :param label: The string representation of the node.
         :param ref: The unique identifier of this node.
         :param parent: The parent node, or `None`.
         :param children: The children of this node.
-        :param location: The location in the source code of this node.
+        :param source_range: The location, start and end, in the source code of this node.
         :param metadata: The metadata of this node.
         :param source_obj: The original AST object for debug purposes.
         """
@@ -84,8 +88,9 @@ class IRNode(object):
         self.parent = parent
         self.source_obj: typing.Any = source_obj
         self.children: typing.List[IRNode] = children if children is not None else []
-        self.location = location
+        self.source_range = source_range
         self.metadata: typing.List[Metadata] = metadata if metadata is not None else []
+        self._is_memory_operation: typing.Optional[bool] = is_memory_operation
 
         # Check children and set parent
         for child in self.children:
@@ -98,7 +103,11 @@ class IRNode(object):
             self.parent.children.append(self)
 
         # Initialize fields
-        self.dependencies: typing.Set[Dependency] = set()
+        self._dependencies: typing.Set[Dependency] = set()
+        self._reverse_dependencies: typing.Set[Dependency] = set()
+        self._full_dependencies: typing.Optional[typing.Set[Dependency]] = None
+        self._mapping: typing.Optional[IRNode] = None
+        self._changed: typing.Optional[bool] = None
 
     @property
     def parent(self) -> typing.Optional["IRNode"]:
@@ -114,6 +123,53 @@ class IRNode(object):
             self._parent = None
         else:
             self._parent = weakref.ref(value)
+
+    @property
+    def location(self) -> typing.Optional[Location]:
+        if self.source_range is not None:
+            return self.source_range.start
+        return None
+
+    @property
+    def is_memory_operation(self) -> bool:
+        if self._is_memory_operation is None:
+            for dependency in set().union(self.dependencies, self.reverse_dependencies):
+                if dependency.type.is_memory_dependency():
+                    self._is_memory_operation = True
+            self._is_memory_operation = True if self._is_memory_operation else False
+        return self._is_memory_operation
+
+    @property
+    def dependencies(self) -> typing.Set[Dependency]:
+        return self._dependencies
+
+    @property
+    def reverse_dependencies(self) -> typing.Set[Dependency]:
+        return self._reverse_dependencies
+
+    def add_dependencies(self, *dependencies: Dependency):
+        for dependency in dependencies:
+            self._dependencies.add(dependency)
+            dependency.node._reverse_dependencies.add(Dependency(self, dependency.type))
+
+    @property
+    def mapping(self) -> typing.Optional["IRNode"]:
+        return self._mapping
+
+    @mapping.setter
+    def mapping(self, value: typing.Optional["IRNode"]):
+        assert value is not None
+        assert self._mapping is None
+        self._mapping = value
+
+    @property
+    def is_changed(self) -> bool:
+        return bool(self._changed)
+
+    @is_changed.setter
+    def is_changed(self, value: bool):
+        assert value is not None
+        self._changed = value
 
     @property
     def name(self):
@@ -197,6 +253,42 @@ class IRNode(object):
         if include_self:
             yield self
 
+    def recursive_dependencies(self, exclude: typing.Optional[typing.List["IRNode"]] = None,
+                               recurse_memory_ops: bool = False) -> typing.Generator["IRNode", None, None]:
+        if exclude is None:
+            exclude = [self]
+
+        for dependency in self.dependencies:
+            exclude.append(dependency.node)
+            yield dependency.node
+            yield from dependency.node.recursive_dependencies(exclude, recurse_memory_ops)
+
+        if recurse_memory_ops and self.is_memory_operation:
+            for child in self.subtree(include_self=False):
+                yield child
+                yield from child.recursive_dependencies(exclude, recurse_memory_ops)
+
+    def recursive_reverse_dependencies(self, exclude: typing.Optional[typing.List["IRNode"]] = None,
+                                       recurse_memory_ops: bool = False) -> typing.Generator["IRNode", None, None]:
+        if exclude is None:
+            exclude = [self]
+
+        for dependency in self.reverse_dependencies:
+            exclude.append(dependency.node)
+            yield dependency.node
+            yield from dependency.node.recursive_reverse_dependencies(exclude, recurse_memory_ops)
+
+        if recurse_memory_ops and self.is_memory_operation:
+            for child in self.subtree(include_self=False):
+                yield child
+                yield from child.recursive_reverse_dependencies(exclude, recurse_memory_ops)
+
+    @property
+    def full_dependencies(self) -> typing.Set["IRNode"]:
+        if self._full_dependencies is None:
+            self._full_dependencies = set().union(self.recursive_dependencies(), self.recursive_reverse_dependencies())
+        return self._full_dependencies
+
     def __str__(self):
         return self.name
 
@@ -223,4 +315,8 @@ class IRNode(object):
         return item in self.children
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            if len(item) > 1:
+                return self.children[item[0]][item[1:]]
+            item = item[0]
         return self.children[item]

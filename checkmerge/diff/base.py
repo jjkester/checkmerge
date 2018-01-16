@@ -8,6 +8,7 @@ from checkmerge.ir import tree
 # Diff algorithm types
 DiffMapping = typing.Dict[tree.IRNode, tree.IRNode]
 ChangeType = typing.Type[typing.Tuple[tree.IRNode, tree.IRNode, "EditOperation"]]
+ChangesGenerator = typing.Generator["Change", None, None]
 DiffChanges = typing.List["Change"]
 
 
@@ -35,7 +36,7 @@ class EditOperation(enum.Enum):
     RENAME = '~'
 
 
-Change: ChangeType = collections.namedtuple('Change', ('old', 'new', 'op'))
+Change: ChangeType = collections.namedtuple('Change', ('base', 'other', 'op'))
 
 
 class DiffResult(object):
@@ -49,6 +50,7 @@ class DiffResult(object):
         self._mapping: DiffMapping = mapping
         self._changes: typing.Optional[DiffChanges] = changes
         self._reduced_changes: typing.Optional[DiffChanges] = None
+        self._changes_by_node: typing.Dict[tree.IRNode, Change] = None
 
     @property
     def base(self) -> tree.IRNode:
@@ -74,8 +76,23 @@ class DiffResult(object):
             self._reduced_changes = list(reduce_changes(self.changes))
         return self._reduced_changes
 
+    @property
+    def changes_by_node(self):
+        if self._changes_by_node is None:
+            self._changes_by_node = {}
+            # Build lookup table for changes per node
+            for change in self.changes:
+                assert change.base not in self._changes_by_node or change in self._changes_by_node.values()
+                assert change.other not in self._changes_by_node or change in self._changes_by_node.values()
 
-def calculate_changes(base: tree.IRNode, other: tree.IRNode, mapping: DiffMapping):
+                if change.base is not None:
+                    self._changes_by_node[change.base] = change
+                if change.other is not None:
+                    self._changes_by_node[change.other] = change
+        return self._changes_by_node
+
+
+def calculate_changes(base: tree.IRNode, other: tree.IRNode, mapping: DiffMapping) -> ChangesGenerator:
     """
     Calculates and yields the changes required to transform the base tree into the other tree.
 
@@ -105,7 +122,24 @@ def reduce_changes(changes: DiffChanges):
     """
     for change in changes:
         if change.op == EditOperation.RENAME:
-            yield Change(change.old, None, EditOperation.DELETE)
-            yield Change(None, change.new, EditOperation.INSERT)
+            yield Change(change.base, None, EditOperation.DELETE)
+            yield Change(None, change.other, EditOperation.INSERT)
         else:
             yield change
+
+
+def tag_nodes(result: DiffResult) -> None:
+    """
+    Adds the change information to the IR nodes.
+    """
+    # Set mapping between nodes
+    for base, other in result.mapping.items():
+        base.mapping = other
+        other.mapping = base
+
+    # Set changed nodes
+    for base, other, op in result.changes:
+        if base is not None:
+            base.is_changed = True
+        if other is not None:
+            other.is_changed = True

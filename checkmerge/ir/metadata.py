@@ -92,3 +92,52 @@ class Location(object):
         file, line, column = segments
 
         return cls(file, int(line), int(column))
+
+
+class Range(object):
+    """
+    Range of locations in source code.
+    """
+    __slots__ = ('start', 'end')
+
+    def __init__(self, start: Location, end: Location):
+        assert self.start.file == self.end.file
+        self.start = start
+        self.end = end
+
+    def as_tuple(self) -> typing.Tuple[typing.Tuple[str, int, int], typing.Tuple[str, int, int]]:
+        return self.start.as_tuple(), self.end.as_tuple()
+
+    @property
+    def lines(self) -> typing.Iterable[int]:
+        return range(self.start.line, self.end.line + 1)
+
+    def overlaps(self, other: "Range"):
+        return other.start <= self.start < other.end or other.start < self.end <= other.end
+
+    def contains(self, other: Location):
+        return self.start <= other < self.end
+
+    def __str__(self):
+        return f"{self.start.file}:{self.start.coordinates}:{self.end.coordinates}"
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: {str(self)}>"
+
+    def __eq__(self, other):
+        if not isinstance(other, Range):
+            return NotImplemented
+        return self.start == other.start and self.end == other.end
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __contains__(self, item):
+        if isinstance(item, Range):
+            return self.overlaps(item)
+        elif isinstance(item, Location):
+            return self.contains(item)
+        return super(Range, self).__contains__(item)
+
+    def __hash__(self):
+        return hash(str(self))

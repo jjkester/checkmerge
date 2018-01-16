@@ -31,6 +31,9 @@ class ClangParser(parse.Parser):
     # Customizers
     _customizers: typing.Dict[clang.CursorKind, Customizer] = dict()
 
+    # Clang args
+    _clang_args = []
+
     def parse_str(self, val: str) -> typing.List[ir.IRNode]:
         # Create temporary file to work with
         with tempfile.NamedTemporaryFile() as f:
@@ -59,7 +62,7 @@ class ClangParser(parse.Parser):
 
         # Try if parsing the code is successful
         try:
-            tu = index.parse(path=path)
+            tu = index.parse(path=path, args=self._clang_args)
         except clang.TranslationUnitLoadError:
             raise parse.ParseError(f"Unable to parse {path}. Run your compiler and check for errors.")
 
@@ -154,7 +157,7 @@ class ClangParser(parse.Parser):
 
                 # Add dependency to node dependencies, ignore if we have no mapping
                 if rnode is not None and rnode != node:
-                    node.dependencies.add(ir.Dependency(rnode, dt))
+                    node.add_dependencies(ir.Dependency(rnode, dt))
 
         # Return root of the tree
         return root
@@ -174,7 +177,7 @@ class ClangParser(parse.Parser):
             label=cursor.spelling,
             ref=cursor.get_usr(),
             parent=parent,
-            location=cls.get_location(cursor),
+            source_range=cls.get_range(cursor),
             source_obj=cursor,
         )
 
@@ -210,15 +213,22 @@ class ClangParser(parse.Parser):
         Returns the location as IR location from a Clang object with a location associated with it.
         """
         location: clang.SourceLocation = obj.location
+        return ClangParser._transform_location(location)
+
+    @staticmethod
+    def get_range(obj: typing.Union[clang.Cursor, clang.Token]) -> ir.Range:
+        """
+        Returns the location range as IR location range from a Clang object with a location associated with it.
+        """
+        extent: clang.SourceRange = obj.extent
+        return ir.Range(start=ClangParser._transform_location(extent.start), end=ClangParser._transform_location(extent.end))
+
+    @staticmethod
+    def _transform_location(location: clang.SourceLocation) -> ir.Location:
         file: typing.Optional[clang.File] = location.file
-
-        if file is None:
-            cursor = obj if isinstance(obj, clang.Cursor) else obj.cursor
-            filename = cursor.translation_unit.spelling
-        else:
-            filename = file.name
-
+        filename = file.name if file is not None else ''
         return ir.Location(file=filename, line=location.line, column=location.column)
+
 
     @staticmethod
     def get_references(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
