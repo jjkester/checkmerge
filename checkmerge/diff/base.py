@@ -7,7 +7,6 @@ from checkmerge.ir import tree
 
 # Diff algorithm types
 DiffMapping = typing.Dict[tree.IRNode, tree.IRNode]
-ChangeType = typing.Type[typing.Tuple[tree.IRNode, tree.IRNode, "EditOperation"]]
 ChangesGenerator = typing.Generator["Change", None, None]
 DiffChanges = typing.List["Change"]
 
@@ -36,7 +35,30 @@ class EditOperation(enum.Enum):
     RENAME = '~'
 
 
-Change: ChangeType = collections.namedtuple('Change', ('base', 'other', 'op'))
+class Change(object):
+    """
+    A change found by the diff algorithm.
+    """
+    __slots__ = ('base', 'other', 'op')
+
+    def __init__(self, base: tree.IRNode, other: tree.IRNode, op: EditOperation):
+        """
+        :param base: The changed node in the base tree.
+        :param other: The changed node in the other tree.
+        :param op: The edit operation.
+        """
+        self.base = base
+        self.other = other
+        self.op = op
+
+    def as_tuple(self) -> typing.Tuple[tree.IRNode, tree.IRNode, EditOperation]:
+        return self.base, self.other, self.op
+
+    def __getitem__(self, item):
+        return self.as_tuple()[item]
+
+    def __iter__(self):
+        return iter(self.as_tuple())
 
 
 class DiffResult(object):
