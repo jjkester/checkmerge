@@ -4,7 +4,8 @@ import collections
 
 class ScopeBase(collections.MutableMapping, metaclass=abc.ABCMeta):
     """
-    Base class for the Scope collection.
+    Base class for the Scope collection. This base class exists to support both the regular Scope and the EmptyScope
+    special-case.
     """
     __slots__ = ()
 
@@ -32,11 +33,17 @@ class EmptyScope(ScopeBase):
 
 
 class Scope(ScopeBase):
+    """
+    Scope collection that can look up items from a parent scope, but not from sibling scopes.
+    """
     EMPTY = EmptyScope()
 
     __slots__ = ('_parent', '_data')
 
     def __init__(self, parent: ScopeBase = EMPTY):
+        """
+        :param parent: The parent of this scope. Defaults to the emtpy scope.
+        """
         # Check parent for validity
         if not isinstance(parent, ScopeBase):
             raise TypeError("Only instances of Scope can be used as parent.")
@@ -47,6 +54,7 @@ class Scope(ScopeBase):
 
     @property
     def parent(self):
+        """The parent of this scope."""
         return self._parent
 
     def __getitem__(self, key):

@@ -4,7 +4,7 @@ import typing
 
 import sys
 
-from checkmerge import parse
+from checkmerge import parse, analysis
 from checkmerge.util.registry import Registry
 
 
@@ -16,28 +16,28 @@ class KeyRegistry(Registry):
         return cls.key
 
 
-class PluginRegistry(Registry[str, typing.Type["Plugin"]]):
+class PluginRegistry(KeyRegistry):
     """
     Manages the available CheckMerge plugins.
     """
     def __init__(self):
         super(PluginRegistry, self).__init__()
-        self.instances: typing.Dict[typing.Type["Plugin"], "Plugin"] = {}
         self.parsers: Registry[str, parse.Parser] = KeyRegistry()
+        self.analysis: Registry[str, analysis.Analysis] = KeyRegistry()
 
-    def key(self, cls: typing.Type["Plugin"]) -> str:
-        return cls.key
+    def register(self, cls):
+        # Register instance instead of class
+        return super().register(cls())
 
     def setup(self):
         """
         Sets up the registered plugins. Marks plugins with errors as disabled. Registers functionality from the plugins
         in the appropriate sub registers.
         """
-        for plugin_class in self.registry.values():
-            if plugin_class in self.instances:
+        for plugin in self.registry.values():
+            # Skip plugin if it is already loaded
+            if plugin.ready:
                 continue
-
-            plugin = plugin_class()
 
             # Try to setup plugin, disable if an error occurs
             try:
@@ -45,25 +45,17 @@ class PluginRegistry(Registry[str, typing.Type["Plugin"]]):
             except Exception as e:
                 plugin.disable(reason=str(e))
 
-            # Register plugin instance
-            self.instances[plugin_class] = plugin
-
             # Pull functions from plugin
             if plugin.ready:
-                for parser in plugin.provide_parsers():
-                    self.parsers.register(parser)
+                for cls in plugin.provide_parsers():
+                    assert issubclass(cls, parse.Parser)
+                    self.parsers.register(cls)
+                for cls in plugin.provide_analysis():
+                    assert issubclass(cls, analysis.Analysis)
+                    self.analysis.register(cls)
 
     def _filter(self, item: "Plugin") -> bool:
         return not item.disabled
-
-    def get_instance(self, cls: typing.Type["Plugin"]) -> typing.Optional["Plugin"]:
-        """
-        Returns the instance of the given plugin class if the plugin has been setup.
-
-        :param cls: The plugin class to get the instance for.
-        :return: The plugin class instance.
-        """
-        return self.instances.get(cls, None)
 
 
 # Define the global plugin registry
@@ -116,11 +108,19 @@ class Plugin(object, metaclass=PluginBase):
         self._disabled: bool = False
         self._disable_reason: str = ''
 
-    def provide_parsers(self) -> typing.List[parse.Parser]:
+    def provide_parsers(self) -> typing.List[typing.Type[parse.Parser]]:
         """
         Returns a list of the parsers provided by this plugin.
 
         :return: The parsers provided by this plugin.
+        """
+        return []
+
+    def provide_analysis(self) -> typing.List[typing.Type[analysis.Analysis]]:
+        """
+        Returns a list of the analysis classes provided by this plugin.
+
+        :return: The analysis classes provided by this plugin.
         """
         return []
 
@@ -130,21 +130,38 @@ class Plugin(object, metaclass=PluginBase):
         """
         self._initialized = True
 
-    def disable(self, reason: str):
+    def disable(self, reason: typing.Any):
         """
-        Disables the plugin.
+        Disables the plugin. The provided reason is used to inform users trying to use the plugin.
+
+        :param reason: The reason for disabling the plugin, for example an exception message.
         """
         self._disabled = True
-        self._disable_reason = reason
+        self._disable_reason = str(reason)
 
     @property
     def ready(self):
+        """Whether the plugin is ready for use. `False` for disabled plugins."""
         return self._initialized and not self._disabled
 
     @property
     def disabled(self):
+        """Whether this plugin is disabled."""
         return self._disabled
 
+    def get_disable_reason(self) -> typing.Optional[str]:
+        """
+        :return: The reason for disabling this plugin, or `None` if the plugin is not disabled.
+        """
+        if self.disabled:
+            return self._disable_reason
+
     @property
-    def module(self):
+    def module(self) -> str:
+        """The module in which this plugin configuration is stored."""
         return self.__class__.__module__
+
+    @property
+    def package(self) -> str:
+        """The package this plugin configuration covers."""
+        return self.__class__.__module__.rsplit('.', 1)[0]

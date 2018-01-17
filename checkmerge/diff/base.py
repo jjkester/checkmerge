@@ -34,6 +34,9 @@ class EditOperation(enum.Enum):
     DELETE = '-'
     RENAME = '~'
 
+    def __str__(self):
+        return str(self.value)
+
 
 class Change(object):
     """
@@ -59,6 +62,13 @@ class Change(object):
 
     def __iter__(self):
         return iter(self.as_tuple())
+
+    def __repr__(self):
+        return f"<Change: {str(self)}>"
+
+    def __str__(self):
+        parts = (str(x) if x is not None else '()' for x in self.as_tuple())
+        return f"({', '.join(map(str, parts))})"
 
 
 class DiffResult(object):

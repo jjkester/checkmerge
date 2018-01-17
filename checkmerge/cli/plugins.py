@@ -6,12 +6,17 @@ from checkmerge.plugins import registry
 @click.option('--disabled', is_flag=True, default=False, help="Show disabled plugins.")
 def list_plugins(disabled):
     """Lists the available plugins."""
-    all_plugins = [registry.get_instance(plugin) for plugin in registry.registry.values()]
+    all_plugins = [plugin for plugin in registry.registry.values()]
     plugins = [plugin for plugin in all_plugins if plugin.disabled is disabled]
 
     if plugins:
+        formatter = click.HelpFormatter()
+
         for plugin in plugins:
-            click.echo(f"{plugin.name}: {plugin.description}")
+            with formatter.section(f"{plugin.name} ({plugin.key})"):
+                formatter.write_text(plugin.description)
+
+        click.echo(formatter.getvalue(), nl=False)
     else:
         if len(all_plugins) > 0:
             click.echo("No disabled plugins.")

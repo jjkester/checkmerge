@@ -11,8 +11,16 @@ from checkmerge.diff import gumtree
 T = typing.TypeVar('T')
 
 
-def _format_version(*args: typing.Union[int, str]) -> str:
-    """Formats a version consisting of multiple segments into a string."""
+def format_version(*args: typing.Union[int, str]) -> str:
+    """
+    Formats a version consisting of multiple segments into a string.
+
+    If a segment is an integer, it will be separated from the preceding segment with a dot. If a segment is a string,
+    it will be separated with a dash.
+
+    :param args: The segments representing the version.
+    :return: The string representation of the version.
+    """
     if len(args) == 0:
         raise ValueError("Empty versions are not allowed.")
 
@@ -27,20 +35,25 @@ def _format_version(*args: typing.Union[int, str]) -> str:
 
 
 class CheckMergeMeta(type):
+    """
+    Metaclass for the CheckMerge object containing information that should be globally accessible.
+    """
+    _initialized = False
+
     @property
     def version(cls) -> str:
-        """The version number."""
-        return _format_version(*version.VERSION)
+        """The version number of the installed CheckMerge version."""
+        return format_version(*version.VERSION)
 
     @property
     def build(cls) -> str:
-        """The build number."""
+        """The build number of the installed CheckMerge version."""
         return f"{version.BUILD:0>6d}"
 
     @property
     def platform(cls) -> str:
-        """Platform information."""
-        return f"Python {_format_version(*sys.version_info)} on {sys.platform}"
+        """Platform specifics of the current runtime."""
+        return f"Python {format_version(*sys.version_info)} on {sys.platform}"
 
     @property
     def plugins(cls) -> typing.Iterable[plugins.Plugin]:
@@ -48,19 +61,29 @@ class CheckMergeMeta(type):
         return plugins.registry.all()
 
     @property
-    def parsers(cls) -> typing.Iterable[parse.Parser]:
+    def parsers(cls) -> typing.Iterable[typing.Type[parse.Parser]]:
         """The loaded parsers."""
         return plugins.registry.parsers.all()
 
     @property
+    def analysis(cls) -> typing.Iterable[typing.Type[_analysis.Analysis]]:
+        """The loaded analysis."""
+        return plugins.registry.analysis.all()
+
+    @property
     def repo(cls) -> str:
-        """The URL to the repository."""
+        """The URL to the main repository."""
         return 'https://github.com/jjkester/checkmerge'
 
     @property
     def docs(cls) -> str:
         """The URL to the documentation."""
         return cls.repo
+
+    @property
+    def ready(cls) -> bool:
+        """Whether CheckMerge is ready for use. Run `setup()` to initialize CheckMerge."""
+        return cls._initialized
 
     def setup(cls):
         """
@@ -70,8 +93,15 @@ class CheckMergeMeta(type):
           - Plugins are discovered and loaded from the Python path
           - Available parsers are collected
         """
+        # Quit if already initialized
+        if cls._initialized:
+            return
+
         plugins.autodiscover()
         plugins.registry.setup()
+
+        # Mark as initialized
+        cls._initialized = True
 
 
 class CheckMerge(object, metaclass=CheckMergeMeta):

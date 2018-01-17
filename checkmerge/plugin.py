@@ -5,6 +5,6 @@ class CheckMergePlugin(plugins.Plugin):
     """
     The default CheckMerge "plugin".
     """
-    key = 'native'
+    key = 'default'
     name = "CheckMerge"
     description = "The native CheckMerge plugin."

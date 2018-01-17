@@ -7,19 +7,43 @@ T = typing.TypeVar('T')
 
 
 class PriorityList(object):
+    """
+    Queue-like data structure that prioritizes smaller items. At any point, `pop()` is guaranteed to return the smallest
+    object, or when multiple objects are equally small, one of these objects.
+    """
     def __init__(self, key: typing.Optional[typing.Callable[[T], int]] = None):
+        """
+        :param key: Optional callable that calculates the ordering key for an object.
+        """
         self.key = key
         self.data: typing.List[typing.Tuple[int, T]] = []
 
     def push(self, obj: T) -> None:
+        """
+        Adds the given object to the collection.
+
+        :param obj: The object to add.
+        """
         item = (self.key(obj), obj) if self.key else obj
         heapq.heappush(self.data, item)
 
     def pop(self) -> T:
+        """
+        Removes and returns the smallest object in the collection. If during construction of the list a key function was
+        given, this key is used to determine the order of the object.
+
+        :return: The smallest item in the collection.
+        """
         data = heapq.heappop(self.data)
         return data[1] if self.key else data
 
     def pop_many(self) -> typing.List[T]:
+        """
+        Removes and returns all the smallest objects in the collection. If during construction of the list a key
+        function was given, this key is used to determine the order of the object.
+
+        :return: A list of the smallest items in the collection.
+        """
         # Ensures that an IndexError is raised on an empty list
         items = [heapq.heappop(self.data)]
 
@@ -30,10 +54,20 @@ class PriorityList(object):
         return list(map(lambda x: x[1], items)) if self.key else items
 
     def peek(self) -> T:
+        """
+        Returns the smallest object in the collection without removing it.
+
+        :return: The smallest item in the collection.
+        """
         data = self.data[0]
         return data[1] if self.key else data
 
     def open(self, iterable: typing.Iterable[T]) -> None:
+        """
+        Adds all items from the given iterable to the collection.
+
+        :param iterable: The items to add.
+        """
         for obj in iterable:
             self.push(obj)
 
