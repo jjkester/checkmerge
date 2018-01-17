@@ -15,15 +15,15 @@ class AnalysisResult(object):
     description: str = ''
     severity: float = 0.0
 
-    def __init__(self, *conflicting_changes: diff.DiffChanges, analysis: "Analysis"):
+    def __init__(self, *conflicting_changes: diff.Change, analysis: "Analysis"):
         self.analysis = analysis
         self.changes = conflicting_changes
 
     def __repr__(self):
-        return f"<AnalysisResult: {self.key}>"
+        return f"<AnalysisResult: {self.analysis.key}>"
 
     def __str__(self):
-        return f"{self.analysis}: {self.name}"
+        return f"{self.analysis.name} ({len(self.changes)})"
 
 
 class Analysis(object):
