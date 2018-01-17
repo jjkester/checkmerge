@@ -101,6 +101,10 @@ class Range(object):
     __slots__ = ('start', 'end')
 
     def __init__(self, start: Location, end: Location):
+        """
+        :param start: The start location of this range.
+        :param end: The end location of this range.
+        """
         assert self.start.file == self.end.file
         self.start = start
         self.end = end
@@ -110,13 +114,28 @@ class Range(object):
 
     @property
     def lines(self) -> typing.Iterable[int]:
+        """The line numbers in this range."""
         return range(self.start.line, self.end.line + 1)
 
     def overlaps(self, other: "Range"):
+        """
+        Tests whether this range (partially) overlaps with the given range. Ranges overlap also when a range is
+        contained in another range. This test is commutative.
+
+        :param other: The other range to test.
+        :return: Whether this range overlaps with the given range.
+        """
         return other.start <= self.start < other.end or other.start < self.end <= other.end
 
-    def contains(self, other: Location):
-        return self.start <= other < self.end
+    def contains(self, other: typing.Union[Location, "Range"]):
+        """
+        Tests whether a given range or location is contained by this range.
+        :param other:
+        :return:
+        """
+        if isinstance(other, Location):
+            return self.start <= other < self.end
+        return self.start <= other.start and other.end <= self.end
 
     def __str__(self):
         return f"{self.start.file}:{self.start.coordinates}:{self.end.coordinates}"
@@ -141,3 +160,25 @@ class Range(object):
 
     def __hash__(self):
         return hash(str(self))
+
+    @classmethod
+    def compress(cls, *ranges: "Range") -> typing.List["Range"]:
+        """
+        Compresses the given ranges. Two ranges will be merged if they overlap. The results will be sorted by lower
+        bound.
+
+        :param ranges: The ranges to compress.
+        :return: A set containing the compressed ranges.
+        """
+        sorted_ranges = sorted(ranges, key=lambda r: r.start)
+        result = [next(sorted_ranges)] if len(ranges) > 0 else []
+
+        for higher in ranges:
+            lower = result[-1]
+
+            if higher.overlaps(lower) and lower.end < higher.end:
+                result[-1] = Range(lower.start, higher.end)
+            else:
+                result.append(higher)
+
+        return result
