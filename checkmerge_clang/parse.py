@@ -24,6 +24,8 @@ class ClangParser(parse.Parser):
     a lot of unnecessary IO overhead.
     """
     key = 'clang'
+    name = 'Clang'
+    description = 'Parser using the Clang compiler. See documentation for specific requirements.'
 
     # Empty list for efficiency purposes
     empty_set: typing.Set[None] = set()

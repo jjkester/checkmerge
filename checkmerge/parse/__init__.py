@@ -16,7 +16,9 @@ class Parser(object):
     """
     Abstract class for parser front ends of CheckMerge.
     """
-    key: str = ''  # Unique identifier for this parser.
+    key: str = ''
+    name: str = ''
+    description: str = ''
 
     def parse(self, obj: object) -> typing.List[tree.IRNode]:
         """
