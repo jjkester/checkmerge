@@ -254,34 +254,40 @@ class IRNode(object):
             yield self
 
     def recursive_dependencies(self, exclude: typing.Optional[typing.List["IRNode"]] = None,
+                               limit: typing.Optional[typing.Callable[["IRNode"], bool]] = None,
                                recurse_memory_ops: bool = False) -> typing.Generator["IRNode", None, None]:
         if exclude is None:
             exclude = [self]
 
-        for dependency in self.dependencies:
+        dependencies = self.dependencies if limit is None else filter(limit, self.dependencies)
+
+        for dependency in dependencies:
             exclude.append(dependency.node)
             yield dependency.node
-            yield from dependency.node.recursive_dependencies(exclude, recurse_memory_ops)
+            yield from dependency.node.recursive_dependencies(exclude, limit, recurse_memory_ops)
 
         if recurse_memory_ops and self.is_memory_operation:
             for child in self.subtree(include_self=False):
                 yield child
-                yield from child.recursive_dependencies(exclude, recurse_memory_ops)
+                yield from child.recursive_dependencies(exclude, limit, recurse_memory_ops)
 
     def recursive_reverse_dependencies(self, exclude: typing.Optional[typing.List["IRNode"]] = None,
+                                       limit: typing.Optional[typing.Callable[["IRNode"], bool]] = None,
                                        recurse_memory_ops: bool = False) -> typing.Generator["IRNode", None, None]:
         if exclude is None:
             exclude = [self]
 
-        for dependency in self.reverse_dependencies:
+        dependencies = self.reverse_dependencies if limit is None else filter(limit, self.reverse_dependencies)
+
+        for dependency in dependencies:
             exclude.append(dependency.node)
             yield dependency.node
-            yield from dependency.node.recursive_reverse_dependencies(exclude, recurse_memory_ops)
+            yield from dependency.node.recursive_reverse_dependencies(exclude, limit, recurse_memory_ops)
 
         if recurse_memory_ops and self.is_memory_operation:
             for child in self.subtree(include_self=False):
                 yield child
-                yield from child.recursive_reverse_dependencies(exclude, recurse_memory_ops)
+                yield from child.recursive_reverse_dependencies(exclude, limit, recurse_memory_ops)
 
     @property
     def full_dependencies(self) -> typing.Set["IRNode"]:

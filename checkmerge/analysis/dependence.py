@@ -17,64 +17,69 @@ class MemoryDependenceConflict(analysis.AnalysisResult):
 
 class DependenceAnalysis(analysis.Analysis):
     """
-
+    Analysis that finds conflicting changes in two versions of the program that may affect the same memory.
     """
     key: str = 'dependence'
     name: str = 'Dependence analysis'
-    description: str = ''
+    description: str = 'Finds changes in two versions that modify the same memory.'
 
     def __call__(self, base: ir.IRNode, other: ir.IRNode, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
         results = []
 
-        # Iterate over memory operations in both trees
-        for node in filter(lambda n: n.is_memory_operation, itertools.chain(base.subtree(), other.subtree())):
-            changed_nodes = set(self.changes(node))
-            dependencies = set(self.dependencies(node))
+        # Get all nodes that are of interest
+        all_nodes = itertools.chain(base.subtree(), other.subtree())
+        changed_memory_nodes = filter(lambda n: n.is_memory_operation, all_nodes)
 
-            if node.mapping is not None:
-                changed_nodes.update(self.changes(node.mapping))
-                dependencies.update(self.dependencies(node.mapping))
+        # Iterate over all changed memory operations in both trees
+        for node in changed_memory_nodes:
+            # Get all nodes possibly affected by a change in this node
+            affected_nodes = {node}.union(self.get_affected(node))
+            changed_nodes = {n for n in affected_nodes if n.is_changed}
 
-            # Iterate over dependency graph of the memory operation
-            for dependency in dependencies:
-                changed_nodes.update(self.changes(dependency))
-
+            # If there is one changed node there is no problem
             if len(changed_nodes) > 1:
-                conflicts = set(map(changes.changes_by_node.get, changed_nodes))
+                results.append(changed_nodes)
 
-                # Test whether we have a "real" conflict between changes from both versions
-                has_base, has_other = False, False
-                for change in conflicts:
-                    if change.base is not None:
-                        has_base = True
-                    if change.other is not None:
-                        has_other = True
+        # Optimize and yield results
+        for result in analysis.optimize_change_sets(results):
+            result_changes = {changes.changes_by_node.get(node) for node in result} - {None}
+            yield MemoryDependenceConflict(*result_changes, analysis=self)
 
-                if len(conflicts) > 1 and has_base and has_other:
-                    results.append(conflicts)
+    @classmethod
+    def get_dependencies(cls, node: ir.IRNode) -> typing.Generator[ir.IRNode, None, None]:
+        """
+        Collects the nodes in the dependency graph of the given node.
 
-        # Compress results by removing subsets
-        for result in results:
-            is_subset = False
+        :param node: The node to analyze.
+        :return: A generator yielding the nodes in the dependency graph of the given node.
+        """
+        def is_memory_dependency(d: ir.Dependency):
+            return d.type.is_memory_dependency
 
-            for compare in results:
-                # If another result contains this result, do not yield this result
-                if result != compare and compare.issuperset(result):
-                    is_subset = True
-                    break
+        yield from node.recursive_dependencies(recurse_memory_ops=True, limit=is_memory_dependency)
+        yield from node.recursive_reverse_dependencies(recurse_memory_ops=True, limit=is_memory_dependency)
 
-            if not is_subset:
-                yield MemoryDependenceConflict(*result, analysis=self)
+    @classmethod
+    def get_mapped(cls, nodes: typing.Iterable[ir.IRNode]) -> typing.Generator[ir.IRNode, None, None]:
+        """
+        Collects the corresponding nodes in the other version of the tree for the given nodes.
 
-    def changes(self, node: ir.IRNode) -> typing.Generator[ir.IRNode, None, None]:
-        for child in node.subtree():
-            if child.is_changed:
-                yield child
-            if child.mapping is not None:
-                for mapped_child in child.mapping.subtree():
-                    if mapped_child.is_changed:
-                        yield mapped_child
+        :param nodes: The nodes to analyze.
+        :return: A generator yielding the mapped nodes for the given nodes.
+        """
+        for node in nodes:
+            if node.mapping is not None:
+                yield node.mapping
 
-    def dependencies(self, node: ir.IRNode) -> typing.Generator[ir.IRNode, None, None]:
-        yield from node.recursive_dependencies(recurse_memory_ops=True)
-        yield from node.recursive_reverse_dependencies(recurse_memory_ops=True)
+    @classmethod
+    def get_affected(cls, node: ir.IRNode) -> typing.Generator[ir.IRNode, None, None]:
+        """
+        Collects the nodes in the other version of the program that are possibly affected by a change to the given node.
+
+        :param node: The node to analyze.
+        :return: A generator yielding the possibly affected nodes.
+        """
+        dependencies = cls.get_dependencies(node)
+        mapped = cls.get_mapped(dependencies)
+        mapped_dependencies = itertools.chain(*map(cls.get_dependencies, mapped))
+        yield from mapped_dependencies
