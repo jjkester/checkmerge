@@ -254,7 +254,7 @@ class IRNode(object):
             yield self
 
     def recursive_dependencies(self, exclude: typing.Optional[typing.List["IRNode"]] = None,
-                               limit: typing.Optional[typing.Callable[["IRNode"], bool]] = None,
+                               limit: typing.Optional[typing.Callable[[Dependency], bool]] = None,
                                recurse_memory_ops: bool = False) -> typing.Generator["IRNode", None, None]:
         if exclude is None:
             exclude = [self]

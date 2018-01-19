@@ -53,7 +53,7 @@ class DependenceAnalysis(analysis.Analysis):
         :param node: The node to analyze.
         :return: A generator yielding the nodes in the dependency graph of the given node.
         """
-        def is_memory_dependency(d: ir.Dependency):
+        def is_memory_dependency(d: ir.Dependency) -> bool:
             return d.type.is_memory_dependency
 
         yield from node.recursive_dependencies(recurse_memory_ops=True, limit=is_memory_dependency)
