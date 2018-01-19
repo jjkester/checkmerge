@@ -76,3 +76,21 @@ class PriorityList(object):
 
     def __len__(self):
         return len(self.data)
+
+
+def remove_subsets(sets: typing.Iterable[typing.Set[T]]) -> typing.Iterable[typing.Set[T]]:
+    """
+    Removes sets that are identical to or a subset of another set in the provided iterable.
+
+    :param sets: An iterable containing the sets to make unique.
+    :return: The remaining sets.
+    """
+    sets = list(sets)
+    result = set()
+
+    for s in sets:
+        y = [x for x in sets if s != x and s.issubset(x)]
+        if not y:
+            result.add(frozenset(s))
+
+    yield from (set(s) for s in result)

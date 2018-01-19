@@ -3,6 +3,7 @@ import typing
 import itertools
 
 from checkmerge import diff, ir
+from checkmerge.util.collections import remove_subsets
 
 
 AnalysisResultGenerator = typing.Generator["AnalysisResult", None, None]
@@ -101,21 +102,5 @@ def optimize_change_sets(change_sets: typing.Iterable[typing.Set[ir.IRNode]]) ->
             elif c2 in c1.descendants:
                 replaces[c2] = replaces.get(c1, c1)
 
-    # Carry out replacements
-    change_sets: typing.List[typing.Set[ir.IRNode]] = [{replaces.get(c, c) for c in cs} for cs in change_sets]
-
-    # Iterate over change sets to find and remove subsets
-    while len(change_sets) > 0:
-        cs1 = change_sets.pop(0)
-
-        has_superset = False
-
-        # Iterate over the change sets to find a super set of this set
-        for cs2 in change_sets:
-            if cs2.issuperset(cs1):
-                has_superset = True
-                break
-
-        # Do not yield any set that is a subset of another set
-        if not has_superset:
-            yield cs1
+    # Carry out replacements and yield the results
+    yield from remove_subsets({replaces.get(c, c) for c in cs} for cs in change_sets)
