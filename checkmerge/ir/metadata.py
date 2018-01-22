@@ -113,7 +113,8 @@ class Range(object):
         :param start: The start location of this range. The start location file and end location file must be equal.
         :param end: The end location of this range. The start location file and end location file must be equal.
         """
-        assert self.start.file == self.end.file
+        assert start.file == end.file
+
         self.start = start
         self.end = end
 
