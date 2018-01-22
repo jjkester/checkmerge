@@ -56,8 +56,8 @@ class Change(object):
         :param other: The changed node in the other tree.
         :param op: The edit operation.
         """
-        assert not (self.base is None and self.other is None)
-        assert self.op is not None
+        assert not (base is None and other is None)
+        assert op is not None
 
         self.base = base
         self.other = other
