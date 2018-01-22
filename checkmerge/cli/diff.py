@@ -1,7 +1,7 @@
 import collections
 
 from checkmerge.app import CheckMerge
-from checkmerge.cli import click, cli, error, pass_app
+from checkmerge.cli import cli, click, error, pass_app
 from checkmerge.diff.base import EditOperation
 from checkmerge.parse import ParseError
 
