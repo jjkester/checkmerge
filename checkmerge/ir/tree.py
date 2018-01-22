@@ -378,7 +378,7 @@ class Node(object):
                 yield from child.recursive_dependencies(exclude, limit, recurse_memory_ops)
 
     def recursive_reverse_dependencies(self, exclude: typing.Optional[typing.List["Node"]] = None,
-                                       limit: typing.Optional[typing.Callable[["Node"], bool]] = None,
+                                       limit: typing.Optional[typing.Callable[[Dependency], bool]] = None,
                                        recurse_memory_ops: bool = False) -> typing.Generator["Node", None, None]:
         """
         Generator for the recursive reverse dependencies of this node. The recursive reverse dependencies form the
