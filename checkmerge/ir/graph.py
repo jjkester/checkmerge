@@ -1,9 +1,9 @@
+import os
 import typing
 
 import graphviz
-import os
 
-from checkmerge.ir import tree
+from checkmerge import ir
 
 
 class GraphVizFormatter(object):
@@ -13,17 +13,24 @@ class GraphVizFormatter(object):
     """
 
     def __init__(self, name: typing.Optional[str] = None):
+        """
+        :param name: The name of the graph.
+        """
         # Initialize fields
         self.graph = graphviz.Digraph(name)
 
-    def add_tree(self, t: tree.IRNode, name: typing.Optional[str] = None, dependencies: bool = False) -> "GraphVizFormatter":
+    def add_tree(self, t: ir.Node, name: typing.Optional[str] = None,
+                 dependencies: bool = False) -> "GraphVizFormatter":
         """
         Adds an IR tree to the graph. Multiple trees can be rendered in the same graph, where every tree will be a
         subgraph.
 
+        This method is declarative and will return the same instance as it was called on.
+
         :param t: The tree to add.
-        :param dependencies: Whether to show dependencies in the graph.
         :param name: The name of the subgraph.
+        :param dependencies: Whether to show dependencies in the graph.
+        :return: The instance of the formatter.
         """
         graph = graphviz.Digraph(name=name)
 
@@ -47,18 +54,24 @@ class GraphVizFormatter(object):
         # Return self for declarative use
         return self
 
-    def add_node(self, node: tree.IRNode, dependencies: bool = False) -> "GraphVizFormatter":
+    def add_node(self, node: ir.Node, dependencies: bool = False) -> "GraphVizFormatter":
         """
         Adds a single IR node to the graph.
 
+        This method is declarative and will return the same instance as it was called on.
+
         :param node: The node to add.
         :param dependencies: Whether to show dependencies in the graph.
+        :return: The instance of the formatter.
         """
         self.graph.node(hex(hash(node)), label=str(node))
 
         if dependencies:
             for dependency in node.dependencies:
                 self.graph.edge(hex(hash(node)), hex(hash(dependency.node)), str(dependency.type), color='red')
+
+        # Return self for declarative use
+        return self
 
     def to_graphviz(self) -> str:
         """

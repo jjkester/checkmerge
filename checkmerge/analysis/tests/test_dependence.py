@@ -2,27 +2,27 @@ import unittest
 
 from checkmerge import app
 from checkmerge.analysis.dependence import DependenceAnalysis
-from checkmerge.ir import IRNode, Dependency, DependencyType
+from checkmerge.ir import Node, Dependency, DependencyType
 
 
 class DependenceAnalysisTestCase(unittest.TestCase):
     def setUp(self):
-        self.ancestor = IRNode(typ="FunctionDef", label="calc", children=[
-            IRNode(typ="FunctionParam", label="a"),
-            IRNode(typ="FunctionParam", label="b"),
-            IRNode(typ="BasicBlock", children=[
-                IRNode(typ="VariableDef", label="c", children=[
-                    IRNode(typ="BinaryOperator", label="+", children=[
-                        IRNode(typ="VariableRef", label="a"),
-                        IRNode(typ="VariableRef", label="b"),
+        self.ancestor = Node(typ="FunctionDef", label="calc", children=[
+            Node(typ="FunctionParam", label="a"),
+            Node(typ="FunctionParam", label="b"),
+            Node(typ="BasicBlock", children=[
+                Node(typ="VariableDef", label="c", children=[
+                    Node(typ="BinaryOperator", label="+", children=[
+                        Node(typ="VariableRef", label="a"),
+                        Node(typ="VariableRef", label="b"),
                     ]),
                 ]),
-                IRNode(typ="FunctionCall", label="printf", children=[
-                    IRNode(typ="StringLiteral"),
-                    IRNode(typ="VariableRef", label="c"),
+                Node(typ="FunctionCall", label="printf", children=[
+                    Node(typ="StringLiteral"),
+                    Node(typ="VariableRef", label="c"),
                 ]),
-                IRNode(typ="Return", children=[
-                    IRNode(typ="VariableRef", label="c"),
+                Node(typ="Return", children=[
+                    Node(typ="VariableRef", label="c"),
                 ], is_memory_operation=True),
             ]),
         ])
@@ -36,25 +36,25 @@ class DependenceAnalysisTestCase(unittest.TestCase):
         self.ancestor[2, 2, 0].add_dependencies(Dependency(self.ancestor[2, 0], DependencyType.REFERENCE),
                                                 Dependency(self.ancestor[2, 1, 1], DependencyType.INPUT))
 
-        self.branch1 = IRNode(typ="FunctionDef", label="calc", children=[
-            IRNode(typ="FunctionParam", label="a"),
-            IRNode(typ="FunctionParam", label="b"),
-            IRNode(typ="BasicBlock", children=[
-                IRNode(typ="VariableDef", label="c", children=[
-                    IRNode(typ="BinaryOperator", label="-", children=[
-                        IRNode(typ="BinaryOperator", label="+", children=[
-                            IRNode(typ="VariableRef", label="a"),
-                            IRNode(typ="VariableRef", label="b"),
+        self.branch1 = Node(typ="FunctionDef", label="calc", children=[
+            Node(typ="FunctionParam", label="a"),
+            Node(typ="FunctionParam", label="b"),
+            Node(typ="BasicBlock", children=[
+                Node(typ="VariableDef", label="c", children=[
+                    Node(typ="BinaryOperator", label="-", children=[
+                        Node(typ="BinaryOperator", label="+", children=[
+                            Node(typ="VariableRef", label="a"),
+                            Node(typ="VariableRef", label="b"),
                         ]),
-                        IRNode(typ="IntegerLiteral", label="1"),
+                        Node(typ="IntegerLiteral", label="1"),
                     ]),
                 ]),
-                IRNode(typ="FunctionCall", label="printf", children=[
-                    IRNode(typ="StringLiteral"),
-                    IRNode(typ="VariableRef", label="c"),
+                Node(typ="FunctionCall", label="printf", children=[
+                    Node(typ="StringLiteral"),
+                    Node(typ="VariableRef", label="c"),
                 ]),
-                IRNode(typ="Return", children=[
-                    IRNode(typ="VariableRef", label="c"),
+                Node(typ="Return", children=[
+                    Node(typ="VariableRef", label="c"),
                 ], is_memory_operation=True),
             ]),
         ])
@@ -68,24 +68,24 @@ class DependenceAnalysisTestCase(unittest.TestCase):
         self.branch1[2, 2, 0].add_dependencies(Dependency(self.branch1[2, 0], DependencyType.REFERENCE),
                                                Dependency(self.branch1[2, 1, 1], DependencyType.INPUT))
 
-        self.branch2 = IRNode(typ="FunctionDef", label="calc", children=[
-            IRNode(typ="FunctionParam", label="a"),
-            IRNode(typ="FunctionParam", label="b"),
-            IRNode(typ="BasicBlock", children=[
-                IRNode(typ="VariableDef", label="c", children=[
-                    IRNode(typ="BinaryOperator", label="+", children=[
-                        IRNode(typ="VariableRef", label="a"),
-                        IRNode(typ="VariableRef", label="b"),
+        self.branch2 = Node(typ="FunctionDef", label="calc", children=[
+            Node(typ="FunctionParam", label="a"),
+            Node(typ="FunctionParam", label="b"),
+            Node(typ="BasicBlock", children=[
+                Node(typ="VariableDef", label="c", children=[
+                    Node(typ="BinaryOperator", label="+", children=[
+                        Node(typ="VariableRef", label="a"),
+                        Node(typ="VariableRef", label="b"),
                     ]),
                 ]),
-                IRNode(typ="FunctionCall", label="printf", children=[
-                    IRNode(typ="StringLiteral"),
-                    IRNode(typ="VariableRef", label="c"),
+                Node(typ="FunctionCall", label="printf", children=[
+                    Node(typ="StringLiteral"),
+                    Node(typ="VariableRef", label="c"),
                 ]),
-                IRNode(typ="Return", children=[
-                    IRNode(typ="BinaryOperator", label="-", children=[
-                        IRNode(typ="VariableRef", label="c"),
-                        IRNode(typ="IntegerLiteral", label="1"),
+                Node(typ="Return", children=[
+                    Node(typ="BinaryOperator", label="-", children=[
+                        Node(typ="VariableRef", label="c"),
+                        Node(typ="IntegerLiteral", label="1"),
                     ]),
                 ], is_memory_operation=True),
             ]),

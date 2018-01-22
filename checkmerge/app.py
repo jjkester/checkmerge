@@ -161,8 +161,8 @@ class RunConfig(object):
         # Initialize data fields
         self._base_path: str = None
         self._other_path: str = None
-        self._base_tree: ir.IRNode = None
-        self._other_tree: ir.IRNode = None
+        self._base_tree: ir.Node = None
+        self._other_tree: ir.Node = None
         self._diff_result: _diff.DiffResult = None
         self._analysis_chain: typing.List[_analysis.AnalysisResultGenerator] = []
 
@@ -189,7 +189,7 @@ class RunConfig(object):
 
         return rc
 
-    def diff(self, base: typing.Optional[ir.IRNode] = None, other: typing.Optional[ir.IRNode] = None) -> "RunConfig":
+    def diff(self, base: typing.Optional[ir.Node] = None, other: typing.Optional[ir.Node] = None) -> "RunConfig":
         """
         Calculates the difference between two internal representation trees.
 
@@ -214,8 +214,8 @@ class RunConfig(object):
 
         return rc
 
-    def analyze(self, analysis_cls: typing.Type[_analysis.Analysis], base: typing.Optional[ir.IRNode] = None,
-                other: typing.Optional[ir.IRNode] = None,
+    def analyze(self, analysis_cls: typing.Type[_analysis.Analysis], base: typing.Optional[ir.Node] = None,
+                other: typing.Optional[ir.Node] = None,
                 changes: typing.Optional[_diff.DiffResult] = None) -> "RunConfig":
         """
         Schedules the provided analysis. Evaluation is lazy.
@@ -237,7 +237,7 @@ class RunConfig(object):
 
         return rc
 
-    def trees(self) -> typing.Tuple[ir.IRNode, ir.IRNode]:
+    def trees(self) -> typing.Tuple[ir.Node, ir.Node]:
         """
         Returns the parsed trees.
         """

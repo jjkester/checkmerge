@@ -20,7 +20,7 @@ class Parser(object):
     name: str = ''
     description: str = ''
 
-    def parse(self, obj: object) -> typing.List[tree.IRNode]:
+    def parse(self, obj: object) -> typing.List[tree.Node]:
         """
         Parses the input into CheckMerge intermediate representation (IR). May raise a TypeError if the given object is
         not supported.
@@ -40,7 +40,7 @@ class Parser(object):
 
         return parse_func(obj)
 
-    def parse_str(self, val: str) -> typing.List[tree.IRNode]:
+    def parse_str(self, val: str) -> typing.List[tree.Node]:
         """
         Parses the code in the given string into CheckMerge IR.
 
@@ -49,7 +49,7 @@ class Parser(object):
         """
         raise NotImplementedError()
 
-    def parse_stream(self, stream: typing.IO) -> typing.List[tree.IRNode]:
+    def parse_stream(self, stream: typing.IO) -> typing.List[tree.Node]:
         """
         Parses the code in the given stream into CheckMerge IR.
         :param stream: The stream containing the code to parse.
@@ -57,7 +57,7 @@ class Parser(object):
         """
         raise NotImplementedError()
 
-    def parse_file(self, path: str) -> typing.List[tree.IRNode]:
+    def parse_file(self, path: str) -> typing.List[tree.Node]:
         """
         Parses the code in the file on the given path into CheckMerge IR.
 

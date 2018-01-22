@@ -35,7 +35,7 @@ class GumTreeDiff(DiffAlgorithm):
         self.min_dice = min_dice
         self.max_size = max_size
 
-    def __call__(self, base: tree.IRNode, other: tree.IRNode) -> DiffResult:
+    def __call__(self, base: tree.Node, other: tree.Node) -> DiffResult:
         """
         Runs the GumTree algorithm to find a mapping between the nodes of both trees.
 
@@ -47,7 +47,7 @@ class GumTreeDiff(DiffAlgorithm):
         mapping = self.bottom_up(base, other, mapping)
         return DiffResult(base, other, mapping)
 
-    def top_down(self, base: tree.IRNode, other: tree.IRNode) -> DiffMapping:
+    def top_down(self, base: tree.Node, other: tree.Node) -> DiffMapping:
         """
         Runs the GumTree top down phase on the given trees.
 
@@ -62,7 +62,7 @@ class GumTreeDiff(DiffAlgorithm):
         l2 = PriorityList(key=self.priority)
 
         # Candidate mappings
-        a: typing.List[typing.Tuple[tree.IRNode, tree.IRNode]] = []
+        a: typing.List[typing.Tuple[tree.Node, tree.Node]] = []
 
         # Decided on mappings
         m: DiffMapping = {}
@@ -119,7 +119,7 @@ class GumTreeDiff(DiffAlgorithm):
 
         return m
 
-    def bottom_up(self, base: tree.IRNode, other: tree.IRNode, m: DiffMapping) -> DiffMapping:
+    def bottom_up(self, base: tree.Node, other: tree.Node, m: DiffMapping) -> DiffMapping:
         """
         Runs the GumTree bottom up algorithm on the given trees. Expects a mapping from the top down phase as input.
 
@@ -161,7 +161,7 @@ class GumTreeDiff(DiffAlgorithm):
 
         return m
 
-    def opt(self, base: tree.IRNode, other: tree.IRNode) -> typing.List[typing.Tuple[tree.IRNode, tree.IRNode]]:
+    def opt(self, base: tree.Node, other: tree.Node) -> typing.List[typing.Tuple[tree.Node, tree.Node]]:
         """
         Runs the GumTree optimization algorithm on the given trees.
 
@@ -182,7 +182,7 @@ class GumTreeDiff(DiffAlgorithm):
         return [(n, t[1]) for n, t in candidates.items()]
 
     @staticmethod
-    def priority(t: tree.IRNode) -> int:
+    def priority(t: tree.Node) -> int:
         """
         Key function for the priority list. Ensures the ordering of the nodes in the list is according to their height,
         with the largest height as the highest priority.
@@ -193,7 +193,7 @@ class GumTreeDiff(DiffAlgorithm):
         return 0 - t.height
 
     @staticmethod
-    def dice(t1: tree.IRNode, t2: tree.IRNode, mappings: typing.Dict[tree.IRNode, tree.IRNode]) -> float:
+    def dice(t1: tree.Node, t2: tree.Node, mappings: typing.Dict[tree.Node, tree.Node]) -> float:
         """
         The dice function calculates a ratio of common descendants between two nodes given existing mappings between
         nodes. The dice coefficient ranges between 0 and 1. A value of 0 indicates that no descendants match while 1
@@ -210,7 +210,7 @@ class GumTreeDiff(DiffAlgorithm):
         return float(2 * common) / float(len(d1) + len(d2))
 
     @staticmethod
-    def jaccard(t1: tree.IRNode, t2: tree.IRNode, mappings: typing.Dict[tree.IRNode, tree.IRNode]) -> float:
+    def jaccard(t1: tree.Node, t2: tree.Node, mappings: typing.Dict[tree.Node, tree.Node]) -> float:
         d1 = set(t1.descendants)
         d2 = set(t2.descendants)
         common = len({d for d in d1 if mappings.get(d) in d2})
@@ -220,7 +220,7 @@ class GumTreeDiff(DiffAlgorithm):
             return 1.0
 
     @staticmethod
-    def isomorphic(t1: tree.IRNode, t2: tree.IRNode) -> bool:
+    def isomorphic(t1: tree.Node, t2: tree.Node) -> bool:
         """
         Returns whether two subtrees identified by nodes are isomorphic with respect to the GumTree algorithm.
 

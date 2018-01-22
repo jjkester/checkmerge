@@ -34,13 +34,13 @@ class AnalysisResult(object):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self.analysis == other.analysis and self.changes == other.changes
 
-    def get_base_nodes(self) -> typing.Set[ir.IRNode]:
+    def get_base_nodes(self) -> typing.Set[ir.Node]:
         """
         :return: The nodes from the base tree in the changes in this result.
         """
         return {change.base for change in self.changes if change.base is not None}
 
-    def get_other_nodes(self) -> typing.Set[ir.IRNode]:
+    def get_other_nodes(self) -> typing.Set[ir.Node]:
         """
         :return: The nodes from the other tree in the changes in this result.
         """
@@ -67,7 +67,7 @@ class Analysis(object):
     name: str = ''
     description: str = ''
 
-    def __call__(self, base: ir.IRNode, other: ir.IRNode, changes: diff.DiffResult) -> AnalysisResultGenerator:
+    def __call__(self, base: ir.Node, other: ir.Node, changes: diff.DiffResult) -> AnalysisResultGenerator:
         """
         Runs the analysis on the provided trees and diff result. Yields an analysis result for
 
@@ -79,7 +79,7 @@ class Analysis(object):
         raise NotImplementedError()
 
 
-def optimize_change_sets(change_sets: typing.Iterable[typing.Set[ir.IRNode]]) -> typing.Iterable[typing.Set[ir.IRNode]]:
+def optimize_change_sets(change_sets: typing.Iterable[typing.Set[ir.Node]]) -> typing.Iterable[typing.Set[ir.Node]]:
     """
     Optimizes sets of changes in a number of ways to remove sets covering the same changes.
 

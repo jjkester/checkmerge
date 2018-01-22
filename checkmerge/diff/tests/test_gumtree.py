@@ -1,7 +1,7 @@
 import unittest
 
 from checkmerge.diff.gumtree import GumTreeDiff
-from checkmerge.ir.tree import IRNode
+from checkmerge.ir.tree import Node
 
 
 class OriginalGumTreeTestCase(unittest.TestCase):
@@ -9,28 +9,28 @@ class OriginalGumTreeTestCase(unittest.TestCase):
     Test case for the GumTree algorithm implementation that was taken from the original Java implementation of GumTree.
     """
     def setUp(self):
-        self.t1 = IRNode(typ="0", label="a", children=[
-            IRNode(typ="0", label="e", children=[
-                IRNode(typ="2", label="f"),
+        self.t1 = Node(typ="0", label="a", children=[
+            Node(typ="0", label="e", children=[
+                Node(typ="2", label="f"),
             ]),
-            IRNode(typ="0", label="b", children=[
-                IRNode(typ="0", label="c"),
-                IRNode(typ="0", label="d"),
+            Node(typ="0", label="b", children=[
+                Node(typ="0", label="c"),
+                Node(typ="0", label="d"),
             ]),
-            IRNode(typ="0", label="g"),
+            Node(typ="0", label="g"),
         ])
 
-        self.t2 = IRNode(typ="0", label="z", children=[
-            IRNode(typ="0", label="b", children=[
-                IRNode(typ="0", label="c"),
-                IRNode(typ="0", label="d"),
+        self.t2 = Node(typ="0", label="z", children=[
+            Node(typ="0", label="b", children=[
+                Node(typ="0", label="c"),
+                Node(typ="0", label="d"),
             ]),
-            IRNode(typ="1", label="h", children=[
-                IRNode(typ="0", label="e", children=[
-                    IRNode(typ="2", label="y"),
+            Node(typ="1", label="h", children=[
+                Node(typ="0", label="e", children=[
+                    Node(typ="2", label="y"),
                 ]),
             ]),
-            IRNode(typ="0", label="g"),
+            Node(typ="0", label="g"),
         ])
 
     def test_min_height_threshold(self):
@@ -61,103 +61,103 @@ class EuclidGumTreeTestCase(unittest.TestCase):
     Test case for the GumTree algorithm implementation using a tree based on the Euclidian algorithm.
     """
     def setUp(self):
-        self.t1 = IRNode(typ="FunctionDef", label="gcd", children=[
-            IRNode(typ="FunctionParam", label="a"),
-            IRNode(typ="FunctionParam", label="b"),
-            IRNode(typ="BasicBlock", children=[
-                IRNode(typ="While", children=[
-                    IRNode(typ="Condition", children=[
-                        IRNode(typ="Operator", label="!=", children=[
-                            IRNode(typ="VariableRef", label="a"),
-                            IRNode(typ="VariableRef", label="b"),
+        self.t1 = Node(typ="FunctionDef", label="gcd", children=[
+            Node(typ="FunctionParam", label="a"),
+            Node(typ="FunctionParam", label="b"),
+            Node(typ="BasicBlock", children=[
+                Node(typ="While", children=[
+                    Node(typ="Condition", children=[
+                        Node(typ="Operator", label="!=", children=[
+                            Node(typ="VariableRef", label="a"),
+                            Node(typ="VariableRef", label="b"),
                         ]),
                     ]),
-                    IRNode(typ="BasicBlock", children=[
-                        IRNode(typ="Conditional", children=[
-                            IRNode(typ="Condition", children=[
-                                IRNode(typ="Operator", label=">", children=[
-                                    IRNode(typ="VariableRef", label="a"),
-                                    IRNode(typ="VariableRef", label="b"),
+                    Node(typ="BasicBlock", children=[
+                        Node(typ="Conditional", children=[
+                            Node(typ="Condition", children=[
+                                Node(typ="Operator", label=">", children=[
+                                    Node(typ="VariableRef", label="a"),
+                                    Node(typ="VariableRef", label="b"),
                                 ]),
                             ]),
-                            IRNode(typ="BasicBlock", children=[
-                                IRNode(typ="Assignment", label="a", children=[
-                                    IRNode(typ="Operator", label="-", children=[
-                                        IRNode(typ="VariableRef", label="a"),
-                                        IRNode(typ="VariableRef", label="b"),
+                            Node(typ="BasicBlock", children=[
+                                Node(typ="Assignment", label="a", children=[
+                                    Node(typ="Operator", label="-", children=[
+                                        Node(typ="VariableRef", label="a"),
+                                        Node(typ="VariableRef", label="b"),
                                     ]),
                                 ]),
                             ]),
-                            IRNode(typ="BasicBlock", children=[
-                                IRNode(typ="Assignment", label="b", children=[
-                                    IRNode(typ="Operator", label="-", children=[
-                                        IRNode(typ="VariableRef", label="b"),
-                                        IRNode(typ="VariableRef", label="a"),
+                            Node(typ="BasicBlock", children=[
+                                Node(typ="Assignment", label="b", children=[
+                                    Node(typ="Operator", label="-", children=[
+                                        Node(typ="VariableRef", label="b"),
+                                        Node(typ="VariableRef", label="a"),
                                     ]),
                                 ]),
                             ]),
                         ]),
                     ]),
                 ]),
-                IRNode(typ="Return", children=[
-                    IRNode(typ="VariableRef", label="a"),
+                Node(typ="Return", children=[
+                    Node(typ="VariableRef", label="a"),
                 ]),
             ]),
         ])
 
-        self.t2 = IRNode(typ="FunctionDef", label="gcd", children=[
-            IRNode(typ="FunctionParam", label="a"),
-            IRNode(typ="FunctionParam", label="b"),
-            IRNode(typ="BasicBlock", children=[
-                IRNode(typ="While", children=[
-                    IRNode(typ="Condition", children=[
-                        IRNode(typ="Operator", label="!=", children=[
-                            IRNode(typ="VariableRef", label="a"),
-                            IRNode(typ="VariableRef", label="b"),
+        self.t2 = Node(typ="FunctionDef", label="gcd", children=[
+            Node(typ="FunctionParam", label="a"),
+            Node(typ="FunctionParam", label="b"),
+            Node(typ="BasicBlock", children=[
+                Node(typ="While", children=[
+                    Node(typ="Condition", children=[
+                        Node(typ="Operator", label="!=", children=[
+                            Node(typ="VariableRef", label="a"),
+                            Node(typ="VariableRef", label="b"),
                         ]),
                     ]),
-                    IRNode(typ="BasicBlock", children=[
-                        IRNode(typ="Assignment", label="t", children=[
-                            IRNode(typ="VariableRef", label="b"),
+                    Node(typ="BasicBlock", children=[
+                        Node(typ="Assignment", label="t", children=[
+                            Node(typ="VariableRef", label="b"),
                         ]),
-                        IRNode(typ="Assignment", label="b", children=[
-                            IRNode(typ="Operator", label="%", children=[
-                                IRNode(typ="VariableRef", label="a"),
-                                IRNode(typ="VariableRef", label="b"),
+                        Node(typ="Assignment", label="b", children=[
+                            Node(typ="Operator", label="%", children=[
+                                Node(typ="VariableRef", label="a"),
+                                Node(typ="VariableRef", label="b"),
                             ]),
                         ]),
-                        IRNode(typ="Assignment", label="b", children=[
-                            IRNode(typ="VariableRef", label="t"),
+                        Node(typ="Assignment", label="b", children=[
+                            Node(typ="VariableRef", label="t"),
                         ]),
                     ]),
                 ]),
-                IRNode(typ="Return", children=[
-                    IRNode(typ="VariableRef", label="a"),
+                Node(typ="Return", children=[
+                    Node(typ="VariableRef", label="a"),
                 ]),
             ]),
         ])
 
-        self.t3 = IRNode(typ="FunctionDef", label="gcd", children=[
-            IRNode(typ="FunctionParam", label="a"),
-            IRNode(typ="FunctionParam", label="b"),
-            IRNode(typ="BasicBlock", children=[
-                IRNode(typ="Condition", children=[
-                    IRNode(typ="Operator", label="==", children=[
-                        IRNode(typ="VariableRef", label="b"),
-                        IRNode(typ="Value", label="0"),
+        self.t3 = Node(typ="FunctionDef", label="gcd", children=[
+            Node(typ="FunctionParam", label="a"),
+            Node(typ="FunctionParam", label="b"),
+            Node(typ="BasicBlock", children=[
+                Node(typ="Condition", children=[
+                    Node(typ="Operator", label="==", children=[
+                        Node(typ="VariableRef", label="b"),
+                        Node(typ="Value", label="0"),
                     ]),
-                    IRNode(typ="BasicBlock", children=[
-                        IRNode(typ="Return", children=[
-                            IRNode(typ="VariableRef", label="a"),
+                    Node(typ="BasicBlock", children=[
+                        Node(typ="Return", children=[
+                            Node(typ="VariableRef", label="a"),
                         ]),
                     ]),
-                    IRNode(typ="BasicBlock", children=[
-                        IRNode(typ="Return", children=[
-                            IRNode("FunctionCall", label="gcd", children=[
-                                IRNode("VariableRef", label="b"),
-                                IRNode("Operator", label="%", children=[
-                                    IRNode(typ="VariableRef", label="a"),
-                                    IRNode(typ="VariableRef", label="b"),
+                    Node(typ="BasicBlock", children=[
+                        Node(typ="Return", children=[
+                            Node("FunctionCall", label="gcd", children=[
+                                Node("VariableRef", label="b"),
+                                Node("Operator", label="%", children=[
+                                    Node(typ="VariableRef", label="a"),
+                                    Node(typ="VariableRef", label="b"),
                                 ]),
                             ])
                         ]),

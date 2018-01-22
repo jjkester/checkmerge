@@ -23,7 +23,7 @@ class DependenceAnalysis(analysis.Analysis):
     name: str = 'Dependence analysis'
     description: str = 'Finds changes in two versions that modify the same memory.'
 
-    def __call__(self, base: ir.IRNode, other: ir.IRNode, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
+    def __call__(self, base: ir.Node, other: ir.Node, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
         results = []
 
         # Get all nodes that are of interest
@@ -46,7 +46,7 @@ class DependenceAnalysis(analysis.Analysis):
             yield MemoryDependenceConflict(*result_changes, analysis=self)
 
     @classmethod
-    def get_dependencies(cls, node: ir.IRNode) -> typing.Generator[ir.IRNode, None, None]:
+    def get_dependencies(cls, node: ir.Node) -> typing.Generator[ir.Node, None, None]:
         """
         Collects the nodes in the dependency graph of the given node.
 
@@ -60,7 +60,7 @@ class DependenceAnalysis(analysis.Analysis):
         yield from node.recursive_reverse_dependencies(recurse_memory_ops=True, limit=is_memory_dependency)
 
     @classmethod
-    def get_mapped(cls, nodes: typing.Iterable[ir.IRNode]) -> typing.Generator[ir.IRNode, None, None]:
+    def get_mapped(cls, nodes: typing.Iterable[ir.Node]) -> typing.Generator[ir.Node, None, None]:
         """
         Collects the corresponding nodes in the other version of the tree for the given nodes.
 
@@ -72,7 +72,7 @@ class DependenceAnalysis(analysis.Analysis):
                 yield node.mapping
 
     @classmethod
-    def get_affected(cls, node: ir.IRNode) -> typing.Generator[ir.IRNode, None, None]:
+    def get_affected(cls, node: ir.Node) -> typing.Generator[ir.Node, None, None]:
         """
         Collects the nodes in the other version of the program that are possibly affected by a change to the given node.
 

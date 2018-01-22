@@ -36,7 +36,7 @@ class ClangParser(parse.Parser):
     # Clang args
     _clang_args = []
 
-    def parse_str(self, val: str) -> typing.List[ir.IRNode]:
+    def parse_str(self, val: str) -> typing.List[ir.Node]:
         # Create temporary file to work with
         with tempfile.NamedTemporaryFile() as f:
             # Write string to file
@@ -45,7 +45,7 @@ class ClangParser(parse.Parser):
             # Parse from file
             return self.parse_file(f.name)
 
-    def parse_stream(self, stream: typing.IO) -> typing.List[ir.IRNode]:
+    def parse_stream(self, stream: typing.IO) -> typing.List[ir.Node]:
         # Create temporary file to work with
         with tempfile.NamedTemporaryFile() as f:
             # Write string to file
@@ -54,7 +54,7 @@ class ClangParser(parse.Parser):
             # Parse from file
             return self.parse_file(f.name)
 
-    def parse_file(self, path: str) -> typing.List[ir.IRNode]:
+    def parse_file(self, path: str) -> typing.List[ir.Node]:
         # Create index for parsing
         index = clang.Index.create()
 
@@ -82,7 +82,7 @@ class ClangParser(parse.Parser):
 
         return [self.walk_ast(tu.cursor, analysis)]
 
-    def walk_ast(self, cursor: clang.Cursor, analysis: typing.Iterable[llvm.AnalysisNode]) -> ir.IRNode:
+    def walk_ast(self, cursor: clang.Cursor, analysis: typing.Iterable[llvm.AnalysisNode]) -> ir.Node:
         """
         Iterates over the AST to build an IR tree. The provided analysis nodes are matched to nodes from the AST and the
         analysis results encoded in the analysis nodes is added to the IR tree.
@@ -103,10 +103,10 @@ class ClangParser(parse.Parser):
         walk_queue = queue.LifoQueue()
 
         # Mapping of declarations (functions, types, ...)
-        mapping: typing.Dict[clang.Cursor, ir.IRNode] = {}
+        mapping: typing.Dict[clang.Cursor, ir.Node] = {}
 
         # Temporary dependency storage
-        DependencyCache = typing.Dict[ir.IRNode, typing.Set[typing.Tuple[clang.Cursor, ir.DependencyType]]]
+        DependencyCache = typing.Dict[ir.Node, typing.Set[typing.Tuple[clang.Cursor, ir.DependencyType]]]
         dependencies: DependencyCache = collections.defaultdict(set)
 
         # Add first element to queue
@@ -165,7 +165,7 @@ class ClangParser(parse.Parser):
         return root
 
     @classmethod
-    def parse_clang_node(cls, cursor: clang.Cursor, parent: typing.Optional[ir.IRNode] = None) -> ir.IRNode:
+    def parse_clang_node(cls, cursor: clang.Cursor, parent: typing.Optional[ir.Node] = None) -> ir.Node:
         """
         Parses a Clang AST node identified by a cursor into an IR node.
 
@@ -180,7 +180,6 @@ class ClangParser(parse.Parser):
             ref=cursor.get_usr(),
             parent=parent,
             source_range=cls.get_range(cursor),
-            source_obj=cursor,
         )
 
         # Overrides for specific kinds of nodes
@@ -188,7 +187,7 @@ class ClangParser(parse.Parser):
             cls._customizers[cursor.kind](cursor, kwargs)
 
         # Build node
-        node = ir.IRNode(**kwargs)
+        node = ir.Node(**kwargs)
 
         return node
 

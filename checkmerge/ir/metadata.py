@@ -6,6 +6,14 @@ class Metadata(object):
     """
     Placeholder base type for metadata information.
     """
+    __slots__ = ()
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self}>"
+
+    def __str__(self):
+        msg = f"The string representation of the Metadata subclass {self.__class__.__name__} should be implemented."
+        raise NotImplementedError(msg)
 
 
 @total_ordering
@@ -17,7 +25,7 @@ class Location(object):
 
     def __init__(self, file: str, line: int, column: int):
         """
-        :param file: The file name or path. May be the empty string if unknown.
+        :param file: The file name or path. May be the empty string if unknown or irrelevant.
         :param line: The line number in the file.
         :param column: The column number in the line.
         """
@@ -41,7 +49,7 @@ class Location(object):
         return f"{self.file}:{self.line}:{self.column}"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: {str(self)}>"
+        return f"<{self.__class__.__name__} {self}>"
 
     def __eq__(self, other):
         if not isinstance(other, Location):
@@ -102,8 +110,8 @@ class Range(object):
 
     def __init__(self, start: Location, end: Location):
         """
-        :param start: The start location of this range.
-        :param end: The end location of this range.
+        :param start: The start location of this range. The start location file and end location file must be equal.
+        :param end: The end location of this range. The start location file and end location file must be equal.
         """
         assert self.start.file == self.end.file
         self.start = start
@@ -141,7 +149,7 @@ class Range(object):
         return f"{self.start.file}:{self.start.coordinates}:{self.end.coordinates}"
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: {str(self)}>"
+        return f"<Range {self}>"
 
     def __eq__(self, other):
         if not isinstance(other, Range):
@@ -177,7 +185,7 @@ class Range(object):
             lower = result[-1]
 
             if higher.overlaps(lower) and lower.end < higher.end:
-                result[-1] = Range(lower.start, higher.end)
+                result[-1] = cls(lower.start, higher.end)
             else:
                 result.append(higher)
 

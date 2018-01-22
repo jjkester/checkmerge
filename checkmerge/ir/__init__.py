@@ -1,13 +1,13 @@
-from checkmerge.ir.graph import GraphVizFormatter
+from checkmerge.ir.tree import Node, Dependency, DependencyType
 from checkmerge.ir.metadata import Metadata, Location, Range
-from checkmerge.ir.tree import IRNode, Dependency, DependencyType
+from checkmerge.ir.graph import GraphVizFormatter
 
 __all__ = [
     GraphVizFormatter,
     Metadata,
     Location,
     Range,
-    IRNode,
+    Node,
     Dependency,
     DependencyType,
 ]

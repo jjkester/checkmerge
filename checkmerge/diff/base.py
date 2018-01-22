@@ -6,7 +6,7 @@ from checkmerge.ir import tree
 
 
 # Diff algorithm types
-DiffMapping = typing.Dict[tree.IRNode, tree.IRNode]
+DiffMapping = typing.Dict[tree.Node, tree.Node]
 ChangesGenerator = typing.Generator["Change", None, None]
 DiffChanges = typing.List["Change"]
 
@@ -15,7 +15,7 @@ class DiffAlgorithm(object):
     """
     Base class for diff algorithms.
     """
-    def __call__(self, base: tree.IRNode, other: tree.IRNode) -> "DiffResult":
+    def __call__(self, base: tree.Node, other: tree.Node) -> "DiffResult":
         """
         Runs the diff algorithm to calculate a mapping between nodes of the base tree and the other tree.
 
@@ -44,7 +44,7 @@ class Change(object):
     """
     __slots__ = ('base', 'other', 'op')
 
-    def __init__(self, base: tree.IRNode, other: tree.IRNode, op: EditOperation):
+    def __init__(self, base: tree.Node, other: tree.Node, op: EditOperation):
         """
         :param base: The changed node in the base tree.
         :param other: The changed node in the other tree.
@@ -54,7 +54,7 @@ class Change(object):
         self.other = other
         self.op = op
 
-    def as_tuple(self) -> typing.Tuple[tree.IRNode, tree.IRNode, EditOperation]:
+    def as_tuple(self) -> typing.Tuple[tree.Node, tree.Node, EditOperation]:
         return self.base, self.other, self.op
 
     def __getitem__(self, item):
@@ -75,21 +75,21 @@ class DiffResult(object):
     """
     Result of a tree diff operation.
     """
-    def __init__(self, base: tree.IRNode, other: tree.IRNode, mapping: DiffMapping,
+    def __init__(self, base: tree.Node, other: tree.Node, mapping: DiffMapping,
                  changes: typing.Optional[DiffChanges] = None):
-        self._base: tree.IRNode = base
-        self._other: tree.IRNode = other
+        self._base: tree.Node = base
+        self._other: tree.Node = other
         self._mapping: DiffMapping = mapping
         self._changes: typing.Optional[DiffChanges] = changes
         self._reduced_changes: typing.Optional[DiffChanges] = None
-        self._changes_by_node: typing.Dict[tree.IRNode, Change] = None
+        self._changes_by_node: typing.Dict[tree.Node, Change] = None
 
     @property
-    def base(self) -> tree.IRNode:
+    def base(self) -> tree.Node:
         return self._base
 
     @property
-    def other(self) -> tree.IRNode:
+    def other(self) -> tree.Node:
         return self._other
 
     @property
@@ -124,7 +124,7 @@ class DiffResult(object):
         return self._changes_by_node
 
 
-def calculate_changes(base: tree.IRNode, other: tree.IRNode, mapping: DiffMapping) -> ChangesGenerator:
+def calculate_changes(base: tree.Node, other: tree.Node, mapping: DiffMapping) -> ChangesGenerator:
     """
     Calculates and yields the changes required to transform the base tree into the other tree.
 
