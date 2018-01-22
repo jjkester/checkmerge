@@ -10,6 +10,7 @@ class Registry(typing.Generic[KT, VT]):
     """
     A generic registry.
     """
+
     def __init__(self):
         self.registry: typing.Dict[KT, VT] = {}
 

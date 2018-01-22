@@ -1,8 +1,7 @@
+import itertools
 import typing
 
-import itertools
-
-from checkmerge import analysis, ir, diff
+from checkmerge import analysis, diff, ir
 
 
 class MemoryDependenceConflict(analysis.AnalysisResult):
@@ -53,11 +52,9 @@ class DependenceAnalysis(analysis.Analysis):
         :param node: The node to analyze.
         :return: A generator yielding the nodes in the dependency graph of the given node.
         """
-        def is_memory_dependency(d: ir.Dependency) -> bool:
-            return d.type.is_memory_dependency
 
-        yield from node.recursive_dependencies(recurse_memory_ops=True, limit=is_memory_dependency)
-        yield from node.recursive_reverse_dependencies(recurse_memory_ops=True, limit=is_memory_dependency)
+        yield from node.recursive_dependencies(recurse_memory_ops=True, limit=cls.is_memory_dependency)
+        yield from node.recursive_reverse_dependencies(recurse_memory_ops=True, limit=cls.is_memory_dependency)
 
     @classmethod
     def get_mapped(cls, nodes: typing.Iterable[ir.Node]) -> typing.Generator[ir.Node, None, None]:
@@ -83,3 +80,7 @@ class DependenceAnalysis(analysis.Analysis):
         mapped = cls.get_mapped(dependencies)
         mapped_dependencies = itertools.chain(*map(cls.get_dependencies, mapped))
         yield from mapped_dependencies
+
+    @staticmethod
+    def is_memory_dependency(d: ir.Dependency) -> bool:
+        return d.type.is_memory_dependency

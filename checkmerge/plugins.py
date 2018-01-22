@@ -1,10 +1,9 @@
 import importlib
 import os
+import sys
 import typing
 
-import sys
-
-from checkmerge import parse, analysis
+from checkmerge import analysis, parse
 from checkmerge.util.registry import Registry
 
 
@@ -12,6 +11,7 @@ class KeyRegistry(Registry):
     """
     Registry for classes with a `key` class parameter.
     """
+
     def key(self, cls):
         return cls.key
 
@@ -20,6 +20,7 @@ class PluginRegistry(KeyRegistry):
     """
     Manages the available CheckMerge plugins.
     """
+
     def __init__(self):
         super(PluginRegistry, self).__init__()
         self.parsers: Registry[str, parse.Parser] = KeyRegistry()
@@ -84,6 +85,7 @@ class PluginBase(type):
     """
     Metaclass for CheckMerge plugin definitions.
     """
+
     def __new__(mcs, name, bases, attrs):
         cls = super(PluginBase, mcs).__new__(mcs, name, bases, attrs)
 

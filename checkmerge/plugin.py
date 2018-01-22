@@ -1,6 +1,6 @@
 import typing
 
-from checkmerge import plugins, analysis
+from checkmerge import analysis, plugins
 from checkmerge.analysis.dependence import DependenceAnalysis
 
 

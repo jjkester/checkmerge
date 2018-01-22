@@ -11,6 +11,7 @@ class PriorityList(object):
     Queue-like data structure that prioritizes smaller items. At any point, `pop()` is guaranteed to return the smallest
     object, or when multiple objects are equally small, one of these objects.
     """
+
     def __init__(self, key: typing.Optional[typing.Callable[[T], int]] = None):
         """
         :param key: Optional callable that calculates the ordering key for an object.

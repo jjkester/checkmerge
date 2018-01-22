@@ -108,6 +108,7 @@ class CheckMerge(object, metaclass=CheckMergeMeta):
     """
     CheckMerge application instance.
     """
+
     def __init__(self):
         self._parser: typing.Optional[typing.Type[parse.Parser]] = None
         self._options: typing.Dict[str, typing.Any] = {}
@@ -152,6 +153,7 @@ class RunConfig(object):
     A run configuration. When configured using the correct classes this object can be used to declaratively define the
     analysis that should be carried out.
     """
+
     def __init__(self, parse_cls: typing.Type[parse.Parser], diff_cls: typing.Type[_diff.DiffAlgorithm], **options):
         # Set initial fields
         self.parser = parse_cls
