@@ -230,7 +230,6 @@ class ClangParser(parse.Parser):
         filename = file.name if file is not None else ''
         return ir.Location(file=filename, line=location.line, column=location.column)
 
-
     @staticmethod
     def get_references(cursor: clang.Cursor) -> typing.Generator[clang.Cursor, None, None]:
         """
@@ -332,7 +331,7 @@ def customize_operator(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
     tokens = list(map(lambda y: y[1], sorted(tokens.items(), key=lambda x: x[0])))
 
     if len(tokens) > 0:
-        kwargs['location'] = ClangParser.get_location(tokens[0])
+        kwargs['source_range'] = ir.Range(ClangParser.get_location(tokens[0]), ClangParser.get_location(tokens[-1]))
 
     kwargs['label'] = ''.join(map(lambda x: x.spelling, tokens))
     return kwargs
