@@ -20,6 +20,7 @@ class GumTreeDiff(DiffAlgorithm):
     [1]: Falleri et al. Fine-grained and Accurate Source Code Differencing. 2014.
     [2]: https://github.com/GumTreeDiff/gumtree
     """
+
     def __init__(self, min_height: int = 2, min_dice: float = 0.3, max_size: int = 100):
         """
         Instantiates a new tree diff executor with the given configuration parameters. The default values have been

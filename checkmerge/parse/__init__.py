@@ -7,6 +7,7 @@ class ParseError(Exception):
     """
     Exception that is thrown when source code could not be parsed.
     """
+
     def __init__(self, message, file=None, *args):
         self.file = file
         super(ParseError, self).__init__(message, *args)

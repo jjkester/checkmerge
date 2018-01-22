@@ -1,4 +1,3 @@
-import collections
 import enum
 import typing
 
@@ -15,6 +14,7 @@ class DiffAlgorithm(object):
     """
     Base class for diff algorithms.
     """
+
     def __call__(self, base: tree.Node, other: tree.Node) -> "DiffResult":
         """
         Runs the diff algorithm to calculate a mapping between nodes of the base tree and the other tree.
@@ -24,6 +24,9 @@ class DiffAlgorithm(object):
         :return: A mapping from nodes of the base tree to nodes of the other tree.
         """
         raise NotImplementedError()
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}>"
 
 
 class EditOperation(enum.Enum):
@@ -36,6 +39,9 @@ class EditOperation(enum.Enum):
 
     def __str__(self):
         return str(self.value)
+
+    def __repr__(self):
+        return f"<EditOperation {self}>"
 
 
 class Change(object):
@@ -50,6 +56,9 @@ class Change(object):
         :param other: The changed node in the other tree.
         :param op: The edit operation.
         """
+        assert not (self.base is None and self.other is None)
+        assert self.op is not None
+
         self.base = base
         self.other = other
         self.op = op
@@ -64,17 +73,19 @@ class Change(object):
         return iter(self.as_tuple())
 
     def __repr__(self):
-        return f"<Change: {str(self)}>"
+        return f"<Change {str(self)}>"
 
     def __str__(self):
         parts = (str(x) if x is not None else '()' for x in self.as_tuple())
-        return f"({', '.join(map(str, parts))})"
+        return f"({', '.join(parts)})"
 
 
 class DiffResult(object):
     """
     Result of a tree diff operation.
     """
+    __slots__ = ('_base', '_other', '_mapping', '_changes', '_reduced_changes', '_changes_by_node')
+
     def __init__(self, base: tree.Node, other: tree.Node, mapping: DiffMapping,
                  changes: typing.Optional[DiffChanges] = None):
         self._base: tree.Node = base
@@ -86,30 +97,36 @@ class DiffResult(object):
 
     @property
     def base(self) -> tree.Node:
+        """The base tree."""
         return self._base
 
     @property
     def other(self) -> tree.Node:
+        """The other tree."""
         return self._other
 
     @property
     def mapping(self) -> DiffMapping:
+        """The mapping from nodes of the base tree to nodes of the other tree."""
         return self._mapping
 
     @property
     def changes(self) -> DiffChanges:
+        """The changes extracted from nodes."""
         if self._changes is None:
             self._changes = list(calculate_changes(self.base, self.other, self.mapping))
         return self._changes
 
     @property
     def reduced_changes(self) -> DiffChanges:
+        """The changes extracted from nodes expressed as inserts and deletes."""
         if self._reduced_changes is None:
             self._reduced_changes = list(reduce_changes(self.changes))
         return self._reduced_changes
 
     @property
     def changes_by_node(self):
+        """Dictionary for looking up a change by a node."""
         if self._changes_by_node is None:
             self._changes_by_node = {}
             # Build lookup table for changes per node
