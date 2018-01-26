@@ -1,6 +1,8 @@
 import enum
 import typing
 
+import os
+
 from checkmerge.ir import tree
 
 
@@ -62,6 +64,13 @@ class Change(object):
         self.base = base
         self.other = other
         self.op = op
+
+    @property
+    def sort_key(self):
+        node = self.base or self.other
+        if node is not None:
+            return os.path.basename(node.location.file), node.location.line, node.location.column
+        return ()
 
     def as_tuple(self) -> typing.Tuple[tree.Node, tree.Node, EditOperation]:
         return self.base, self.other, self.op

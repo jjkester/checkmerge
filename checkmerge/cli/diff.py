@@ -1,8 +1,5 @@
-import collections
-
 from checkmerge.app import CheckMerge
-from checkmerge.cli import cli, click, error, pass_app
-from checkmerge.diff.base import EditOperation
+from checkmerge.cli import cli, click, error, pass_app, formatting
 from checkmerge.parse import ParseError
 
 
@@ -34,21 +31,8 @@ def diff(app: CheckMerge, parser, base, compared):
     except ParseError as e:
         return error(e)
 
-    # Format changes
-    changes = result.reduced_changes
-
-    op_sign = collections.defaultdict(lambda x: '??')
-    op_sign.update({
-        EditOperation.DELETE: '--',
-        EditOperation.INSERT: '++',
-    })
-    op_color = collections.defaultdict(lambda x: 'black')
-    op_color.update({
-        EditOperation.DELETE: 'red',
-        EditOperation.INSERT: 'green',
-    })
-
-    for old, new, op in changes:
-        node = new if op == EditOperation.INSERT else old
-        click.secho(f"@@{node.location}", color='cyan')
-        click.secho(f"{op_sign[op]}{node}", color=op_color[op])
+    # Print changes
+    for change in sorted(result.reduced_changes, key=lambda c: c.sort_key):
+        text = formatting.format_change(change)
+        if text:
+            click.echo(text)
