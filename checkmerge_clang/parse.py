@@ -182,6 +182,10 @@ class ClangParser(parse.Parser):
             source_range=cls.get_range(cursor),
         )
 
+        # Overrides for root node
+        if parent is None and cursor.kind == clang.CursorKind.TRANSLATION_UNIT:
+            kwargs['label'] = os.path.basename(kwargs['label'])
+
         # Overrides for specific kinds of nodes
         if cursor.kind in cls._customizers:
             cls._customizers[cursor.kind](cursor, kwargs)
