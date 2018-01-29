@@ -52,7 +52,7 @@ class Change(object):
     """
     __slots__ = ('base', 'other', 'op')
 
-    def __init__(self, base: tree.Node, other: tree.Node, op: EditOperation):
+    def __init__(self, base: typing.Optional[tree.Node], other: typing.Optional[tree.Node], op: EditOperation):
         """
         :param base: The changed node in the base tree.
         :param other: The changed node in the other tree.
