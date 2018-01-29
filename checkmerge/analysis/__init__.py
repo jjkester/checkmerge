@@ -92,6 +92,9 @@ def optimize_change_sets(change_sets: typing.Iterable[typing.Set[ir.Node]]) -> t
     """
     replaces = {}
 
+    # Remove duplicates before carrying out expensive algorithm
+    change_sets = list(remove_subsets(change_sets))
+
     # Iterate over all combinations of two change sets to build a replacement mapping
     for cs1, cs2 in itertools.product(change_sets, change_sets):
         # Iterate over all combinations of the changes in the sets

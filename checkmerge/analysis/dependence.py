@@ -27,10 +27,10 @@ class DependenceAnalysis(analysis.Analysis):
 
         # Get all nodes that are of interest
         all_nodes = itertools.chain(base.subtree(), other.subtree())
-        changed_memory_nodes = filter(lambda n: n.is_memory_operation, all_nodes)
+        memory_nodes = filter(lambda n: n.is_memory_operation, all_nodes)
 
         # Iterate over all changed memory operations in both trees
-        for node in changed_memory_nodes:
+        for node in memory_nodes:
             # Get all nodes possibly affected by a change in this node
             affected_nodes = {node}.union(self.get_affected(node))
             changed_nodes = {n for n in affected_nodes if n.is_changed}
