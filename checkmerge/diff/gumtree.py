@@ -1,6 +1,7 @@
 import itertools
 import typing
 
+import bidict
 import pylev3
 import zss
 
@@ -66,7 +67,7 @@ class GumTreeDiff(DiffAlgorithm):
         a: typing.List[typing.Tuple[tree.Node, tree.Node]] = []
 
         # Decided on mappings
-        m: DiffMapping = {}
+        m: DiffMapping = bidict.bidict()
 
         # Start with the root nodes
         l1.push(base)  # line 1
@@ -101,12 +102,12 @@ class GumTreeDiff(DiffAlgorithm):
 
                 # Add the unmapped subtrees to the queue
                 for t in h1:  # line 18
-                    if t not in map(lambda x: x[0], a) and t not in m.keys():  # line 18
+                    if t not in map(lambda x: x[0], a) and t not in m:  # line 18
                         l1.open(t.children)  # line 18
 
                 # Add the unmapped subtrees to the queue
                 for t in h2:  # line 18
-                    if t not in map(lambda x: x[1], a) and t not in m.values():  # line 18
+                    if t not in map(lambda x: x[1], a) and t not in m.inv:  # line 18
                         l2.open(t.children)  # line 18
 
         # Sort the candidate mappings on their dice coefficient
@@ -114,8 +115,8 @@ class GumTreeDiff(DiffAlgorithm):
 
         # Add candidates in order to the mapping if the nodes are not mapped to ensure the best options are chosen
         for t1, t2 in a:  # line 20, 21
-            if t1 not in m.keys() and t2 not in m.values():  # line 23, 24
-                for n1, n2 in filter(lambda x: self.isomorphic(*x), itertools.product(t1.subtree(), t2.subtree())):
+            if t1 not in m and t2 not in m.inv:  # line 23, 24
+                for n1, n2 in filter(lambda x: self.isomorphic(*x) and x[0] not in m and x[1] not in m.inv, itertools.product(t1.subtree(), t2.subtree())):
                     m[n1] = n2  # line 22
 
         return m
