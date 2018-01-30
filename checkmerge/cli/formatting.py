@@ -1,10 +1,10 @@
 import linecache
+import os
 import typing
 
 import click
-import os
 
-from checkmerge import diff, ir
+from checkmerge import analysis, diff, ir, report
 
 
 def format_filename(filename: str, symbol: str = ' '):
@@ -48,6 +48,7 @@ def node_ranges(node: ir.Node) -> typing.Iterable[typing.Tuple[typing.Tuple[int,
     :return: Tuples indicating the start and end coordinates of ranges with a boolean indicating whether the range is
     relevant for the node.
     """
+
     def coordinates(location: ir.Location):
         return location.line - node.location.line, location.column - 1
 
@@ -56,8 +57,10 @@ def node_ranges(node: ir.Node) -> typing.Iterable[typing.Tuple[typing.Tuple[int,
     elif len(node.children) == 1 and node.source_range == node.children[0].source_range:
         yield from node_ranges(node.children[0])
     else:
-        start = node.source_range.start
-        for child in sorted(node.children, key=lambda n: n.location):
+        sorted_children = sorted(node.children, key=lambda n: n.location)
+        start = min(node.source_range.start,
+                    sorted_children[0].source_range.start) if sorted_children else node.source_range.start
+        for child in sorted_children:
             if child.source_range.start > start:
                 yield coordinates(start), coordinates(child.source_range.start), True
             start = child.source_range.end
@@ -151,3 +154,102 @@ def format_change(change: diff.Change) -> str:
         buffer.append(other_code)
 
     return os.linesep.join(buffer)
+
+
+def format_conflict(conflict: analysis.AnalysisResult):
+    """
+    Formats a conflict from analysis.
+
+    :param conflict: The analysis result to format.
+    :return: The formatted analysis result.
+    """
+    buffer = []
+
+    buffer.append(click.style(f"CONFLICT: {conflict.name}", bold=True))
+    buffer.append(click.style(f"Severity: {conflict.severity:.2f}"))
+
+    indent_continuation = click.style('│ ', fg='gray')
+    indent_item = click.style('├─', fg='gray')
+
+    for change in conflict.changes:
+        change_lines = format_change(change).split(os.linesep)
+
+        if len(change_lines) > 0:
+            buffer.append(f"{indent_item}{change_lines[0]}")
+
+            for line in change_lines[1:]:
+                buffer.append(f"{indent_continuation}{line}")
+
+    buffer.append(click.style('└───', fg='gray'))
+
+    return os.linesep.join(buffer)
+
+
+class CheckMergeFormatter(click.HelpFormatter):
+    """
+    CheckMerge specific CLI formatter.
+    """
+
+    def write_text(self, text, wrap=True):
+        if wrap:
+            super().write_text(text)
+        else:
+            for line in text.split(os.linesep):
+                self.write('%*s%s%s' % (self.current_indent, '', line, os.linesep))
+
+    def write_heading(self, heading):
+        self.write(click.style('%*s%s:\n' % (self.current_indent, '', heading), bold=True))
+
+    def write_change(self, change: diff.Change):
+        base_code = other_code = ''
+        base_lines = other_lines = ''
+
+        if change.base:
+            base_code = format_node_in_code(change.base, '-', 'red')
+            lines = len(base_code.split('\n'))
+            base_lines = f"{change.base.location.line},{change.base.location.line + lines}"
+        if change.other:
+            other_code = format_node_in_code(change.other, '+', 'green')
+            lines = len(other_code.split('\n'))
+            other_lines = f"{change.other.location.line},{change.other.location.line + lines}"
+
+        if base_lines:
+            self.write_text(format_filename(change.base.location.file, '-'), False)
+        if other_lines:
+            self.write_text(format_filename(change.other.location.file, '+'), False)
+        if base_lines or other_lines:
+            self.write_text(format_line_diff(base_lines, other_lines), False)
+
+        if base_code:
+            self.write_text(base_code, False)
+        if other_code:
+            self.write_text(other_code, False)
+
+    def write_conflict(self, conflict: analysis.AnalysisResult):
+        with self.section(f"{conflict.name} (severity: {conflict.severity})"):
+            for change in conflict.changes:
+                self.write_change(change)
+
+    def get_metric_dl(self, metric: report.Metric, indent=0):
+        rows = [(f"{' ' * indent}{metric.name}", metric.value_as_str())]
+
+        for child in metric.children:
+            rows.extend(self.get_metric_dl(child, indent + self.indent_increment))
+
+        return rows
+
+    def write_metric(self, metric: report.Metric):
+        self.write_dl(self.get_metric_dl(metric))
+
+    def write_report(self, data: report.Report):
+        if data.has_metrics:
+            for metric in data.get_metrics():
+                self.write_metric(metric)
+
+        if data.has_conflicts:
+            for conflict in data.get_conflicts():
+                self.write_conflict(conflict)
+
+        if data.has_changes:
+            for change in data.get_changes():
+                self.write_change(change)

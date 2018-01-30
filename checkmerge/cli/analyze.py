@@ -1,7 +1,9 @@
 import click
 
+from checkmerge.analysis.report import AnalysisReport
 from checkmerge.app import CheckMerge
 from checkmerge.cli import cli, error, pass_app
+from checkmerge.cli.formatting import CheckMergeFormatter
 from checkmerge.parse import ParseError
 from checkmerge.plugins import registry
 
@@ -9,7 +11,7 @@ from checkmerge.plugins import registry
 @cli.command()
 @click.option('--parser', '-p', 'parser', type=click.STRING, required=True,
               help="The parser to use. Run `list-parsers` to see the available parsers.")
-@click.option('--analysis', '-a', 'analysis', type=click.STRING, multiple=True,
+@click.option('--analysis', '-a', 'analysis', type=click.STRING, required=True, multiple=True,
               help="The analysis to perform. Repeat this option to perform multiple analysis."
                    "Run `list-analysis` to see the available analysis.")
 @click.argument('base', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
@@ -43,6 +45,12 @@ def analyze(app: CheckMerge, parser, analysis, base, compared):
             config = config.analyze(analysis_cls)
 
     # Do analysis
-    result = config.analysis()
+    results = list(config.analysis())
 
-    print(list(result))  # TODO Replace with reporting
+    # Build report
+    report = AnalysisReport(results)
+
+    # Write report
+    formatter = CheckMergeFormatter()
+    formatter.write_report(report)
+    click.echo(formatter.getvalue(), nl=False)
