@@ -139,7 +139,7 @@ class AnalysisParser(object):
 
         # Create instruction
         self._instruction = AnalysisNode(SourceReference(
-            entity_name=variable,
+            entity_name=variable.get('name') if variable else None,
             location=ir.Location.parse(location)
         ))
 

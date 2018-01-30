@@ -137,8 +137,14 @@ class ClangParser(parse.Parser):
                 # Map cursor to node for dependency resolving
                 mapping[cursor.canonical.hash] = node
 
+                alt_location = ir.Location(node.location.file, node.location.line, node.location.column + node.label.find(': ') + 1)
+                analysis_nodes = analysis_lookup.get(node.location, self.empty_set).copy()
+
+                for analysis_node in analysis_lookup.get(alt_location, self.empty_set):
+                    analysis_nodes.add(analysis_node)
+
                 # Find analysis info
-                for analysis_node in analysis_lookup.get(node.location, self.empty_set):
+                for analysis_node in analysis_nodes:
                     # Map analysis node to IR node for resolving references
                     mapping[analysis_node] = node
 
@@ -146,7 +152,7 @@ class ClangParser(parse.Parser):
                     dependencies[node].update(analysis_node.dependencies)
 
                 # Add children to queue
-                for child in cursor.get_children():
+                for child in reversed(list(cursor.get_children())):
                     walk_queue.put_nowait((child, node))
             except queue.Empty:
                 # Break out of loop when the queue is empty
@@ -173,10 +179,15 @@ class ClangParser(parse.Parser):
         :param parent: The parent IR node.
         :return: The corresponding IR node.
         """
+        type_str = getattr(cursor.type, 'spelling', '')
+
+        # Build label
+        label = f"{type_str}: {cursor.spelling}" if cursor.is_definition() and type_str else cursor.spelling
+
         # Default node data
         kwargs = dict(
             typ=cursor.kind.name,
-            label=cursor.spelling,
+            label=label,
             ref=cursor.get_usr(),
             parent=parent,
             source_range=cls.get_range(cursor),
@@ -334,8 +345,17 @@ def customize_operator(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
     # Get token objects ordered properly
     tokens = list(map(lambda y: y[1], sorted(tokens.items(), key=lambda x: x[0])))
 
-    if len(tokens) > 0:
-        kwargs['source_range'] = ir.Range(ClangParser.get_location(tokens[0]), ClangParser.get_location(tokens[-1]))
+    # if len(tokens) > 0:
+    #     kwargs['source_range'] = ir.Range(ClangParser.get_location(tokens[0]), ClangParser.get_location(tokens[-1]))
 
     kwargs['label'] = ''.join(map(lambda x: x.spelling, tokens))
+    return kwargs
+
+
+@ClangParser.register_customizer(clang.CursorKind.RETURN_STMT)
+def customize_return(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
+    """
+    Sets the `is_memory_operation` flag for returns.
+    """
+    kwargs['is_memory_operation'] = True
     return kwargs
