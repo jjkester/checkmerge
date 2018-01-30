@@ -374,6 +374,7 @@ class Node(object):
 
         if recurse_memory_ops and self.is_memory_operation:
             for child in self.subtree(include_self=False):
+                exclude.append(child)
                 yield child
                 yield from child.recursive_dependencies(exclude, limit, recurse_memory_ops)
 
@@ -402,6 +403,7 @@ class Node(object):
 
         if recurse_memory_ops and self.is_memory_operation:
             for child in self.subtree(include_self=False):
+                exclude.append(child)
                 yield child
                 yield from child.recursive_reverse_dependencies(exclude, limit, recurse_memory_ops)
 
