@@ -96,7 +96,7 @@ def optimize_change_sets(change_sets: typing.Iterable[typing.Set[ir.Node]]) -> t
     change_sets = list(remove_subsets(change_sets))
 
     # Iterate over all combinations of two change sets to build a replacement mapping
-    for cs1, cs2 in itertools.product(change_sets, change_sets):
+    for cs1, cs2 in itertools.combinations(change_sets, 2):
         # Iterate over all combinations of the changes in the sets
         for c1, c2 in itertools.product(cs1, cs2):
             # Set replacement if a node is a descendant of

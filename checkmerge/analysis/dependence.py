@@ -78,7 +78,7 @@ class DependenceAnalysis(analysis.Analysis):
         """
         dependencies = cls.get_dependencies(node)
         mapped = cls.get_mapped(dependencies)
-        mapped_dependencies = itertools.chain(*map(cls.get_dependencies, mapped))
+        mapped_dependencies = itertools.chain(mapped, *map(cls.get_dependencies, mapped))
         yield from mapped_dependencies
 
     @staticmethod
