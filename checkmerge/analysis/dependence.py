@@ -52,7 +52,6 @@ class DependenceAnalysis(analysis.Analysis):
         :param node: The node to analyze.
         :return: A generator yielding the nodes in the dependency graph of the given node.
         """
-
         yield from node.recursive_dependencies(recurse_memory_ops=True, limit=cls.is_memory_dependency)
         yield from node.recursive_reverse_dependencies(recurse_memory_ops=True, limit=cls.is_memory_dependency)
 
