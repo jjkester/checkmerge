@@ -41,8 +41,35 @@ class DependenceAnalysis(analysis.Analysis):
 
         # Optimize and yield results
         for result in analysis.optimize_change_sets(results):
-            result_changes = {changes.changes_by_node.get(node) for node in result} - {None}
-            yield MemoryDependenceConflict(*result_changes, analysis=self)
+            roots = {n.root for n in result}
+
+            if base in roots and other in roots:
+                result_changes = {changes.changes_by_node.get(node) for node in result} - {None}
+                yield MemoryDependenceConflict(*result_changes, analysis=self)
+
+    @classmethod
+    def recursive_memory_dependencies(cls, node: ir.Node, reverse: bool = False) -> typing.Set[ir.Node]:
+        nodes = [node]
+        result = set()
+
+        while len(nodes) > 0:
+            # Get next node
+            node = nodes.pop(0)
+
+            if node in result:
+                continue
+
+            # Add to result
+            result.add(node)
+
+            # Add single-direction dependencies
+            dependencies = node.reverse_dependencies if reverse else node.dependencies
+            nodes.extend(d.node for d in filter(cls.is_memory_dependency, dependencies))
+
+            if node.is_memory_operation:
+                nodes.extend(node.descendants)
+
+        return result
 
     @classmethod
     def get_dependencies(cls, node: ir.Node) -> typing.Generator[ir.Node, None, None]:
@@ -52,8 +79,10 @@ class DependenceAnalysis(analysis.Analysis):
         :param node: The node to analyze.
         :return: A generator yielding the nodes in the dependency graph of the given node.
         """
-        yield from node.recursive_dependencies(recurse_memory_ops=True, limit=cls.is_memory_dependency)
-        yield from node.recursive_reverse_dependencies(recurse_memory_ops=True, limit=cls.is_memory_dependency)
+        yield from set().union(
+            cls.recursive_memory_dependencies(node, False),
+            cls.recursive_memory_dependencies(node, True),
+        )
 
     @classmethod
     def get_mapped(cls, nodes: typing.Iterable[ir.Node]) -> typing.Generator[ir.Node, None, None]:

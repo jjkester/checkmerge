@@ -128,7 +128,8 @@ class Node(object):
     collection. It is therefore important to keep a reference to the root of the tree.
     """
     __slots__ = ('type', 'label', 'ref', '_parent', 'children', 'source_range', 'metadata', '_is_memory_operation',
-                 '_dependencies', '_reverse_dependencies', '_mapping', '_changed', '_height', '_hash', '__weakref__')
+                 '_dependencies', '_reverse_dependencies', '_mapping', '_changed', '_height', '_hash', '_root',
+                 '__weakref__')
 
     def __init__(self, typ: str, label: typing.Optional[str] = None, ref: typing.Optional[str] = None,
                  parent: typing.Optional["Node"] = None,
@@ -174,6 +175,7 @@ class Node(object):
         self._changed: typing.Optional[bool] = None
         self._height = None
         self._hash = None
+        self._root = None
 
     @property
     def parent(self) -> typing.Optional["Node"]:
@@ -191,6 +193,13 @@ class Node(object):
             self._parent = weakref.ref(value)
 
     @property
+    def root(self) -> "Node":
+        """The root node of the tree."""
+        if self._root is None:
+            self._root = self.parent.root if self.parent is not None else self
+        return self._root
+
+    @property
     def location(self) -> typing.Optional[Location]:
         """The location of the first character of this node."""
         if self.source_range is not None:
@@ -203,7 +212,7 @@ class Node(object):
         Returns whether this operation is a memory operation. This is automatically detected by analyzing the
         dependencies of a node. A node is a memory operation if it is on either end of a memory dependency.
 
-        This can be overridden by setting the `is_memory_dependency` flag in the constructor of a node. This should be
+        This can be overridden by setting the `is_memory_operation` flag in the constructor of a node. This should be
         done for memory operations that are not automatically detected by the parser, for example, a return statement.
 
         :return: Whether this node represents a memory operation.
@@ -215,6 +224,19 @@ class Node(object):
                     break
             self._is_memory_operation = True if self._is_memory_operation else False
         return self._is_memory_operation
+
+    @property
+    def is_definition(self) -> bool:
+        """
+        Returns whether this node is a definition. This is automatically detected by analyzing the dependencies of a
+        node. A node is a definition if it has reference dependencies to it.
+
+        :return: Whether this node represents a definition.
+        """
+        for dependency in self.reverse_dependencies:
+            if dependency.type == DependencyType.REFERENCE:
+                return True
+        return False
 
     @property
     def dependencies(self) -> typing.Set[Dependency]:
