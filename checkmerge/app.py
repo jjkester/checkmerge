@@ -166,7 +166,7 @@ class RunConfig(object):
         self._base_tree: ir.Node = None
         self._other_tree: ir.Node = None
         self._diff_result: _diff.DiffResult = None
-        self._analysis_chain: typing.List[_analysis.AnalysisResultGenerator] = []
+        self._analysis_chain: typing.List[typing.Tuple[typing.Any, typing.Iterable]] = []
 
     def parse(self, base_path: str, other_path: str) -> "RunConfig":
         """
@@ -235,7 +235,7 @@ class RunConfig(object):
 
         # Store analysis generator
         with rc._args((base, '_base_tree'), (other, '_other_tree'), (changes, '_diff_result')) as args:
-            rc._analysis_chain.append(analysis(*args))
+            rc._analysis_chain.append((analysis, args))
 
         return rc
 
@@ -259,8 +259,8 @@ class RunConfig(object):
         """
         Returns a generator yielding the analysis results.
         """
-        for generator in self._analysis_chain:
-            yield from generator
+        for func, args in self._analysis_chain:
+            yield from func(*args)
 
     @contextmanager
     def _arg(self, value: T, key: str) -> T:
