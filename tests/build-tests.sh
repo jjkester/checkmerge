@@ -5,40 +5,49 @@ TEST_DIR="${DIR}"
 TEST_FILES="${TEST_DIR}/*/*.c"
 error=0
 
-echo "Building test files in ${TEST_DIR} ..."
+if [ -z ${CM_LIB+x} ]; then echo "CM_LIB environment variable not set!"; exit 1; fi
+
+echo "Building test files in ${TEST_DIR}..."
 
 for f in $TEST_FILES
 do
     in=$f
     out="${in%.*}.ll"
 
-    echo "  Building $(basename "${in}")..."
+    printf "  Building %s:\n" ${in#${TEST_DIR}/}
 
-    echo "    Compiling $(basename "${in}")..."
+    printf "    Compiling %s... " $(basename ${in})
 
     clang -S -O0 -g -emit-llvm "$in" -o "$out" > /dev/null 2>&1
 
     if [ $? -ne 0 ]; then
         error=$((error + 1))
-        echo "    [!] Error while compiling $(basename "${in}")!"
+        printf "[!] Error!\n"
     else
-        echo "      Generated $(basename "${out}")."
+        printf "Done.\n"
+        printf "      Generated %s.\n" ${out#${TEST_DIR}/}
 
-        echo "    Analyzing $(basename "${out}")..."
+        printf "    Analyzing %s... " $(basename ${out})
 
-        opt -analyze -load="${CM_LIB}" -checkmerge "${out}" > /dev/null 2>&1
+        opt -analyze -load=${CM_LIB} -checkmerge ${out} > /dev/null 2>&1
 
         if [ $? -ne 0 ]; then
             error=$((error + 1))
-            echo "    [!] Error while analyzing $(basename "${in}")!"
+            printf "[!] Error!\n"
         else
-            echo "      Generated $(basename "${out}.cm")."
+            printf "Done.\n"
+            printf "      Generated %s.\n" "${out#${TEST_DIR}/}.cm"
         fi
+
+        printf "    Cleaning up %s... " $(basename ${out})
+        rm ${out}
+        printf "Done.\n"
+
     fi
 done
 
 if [ $error -ne 0 ]; then
     echo "[!] Failed with ${error} errors."
 else
-    echo "Done."
+    echo "Completed."
 fi
