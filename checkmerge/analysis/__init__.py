@@ -67,12 +67,10 @@ class Analysis(object):
     name: str = ''
     description: str = ''
 
-    def __call__(self, base: ir.Node, other: ir.Node, changes: diff.DiffResult) -> AnalysisResultGenerator:
+    def __call__(self, changes: diff.DiffResult) -> AnalysisResultGenerator:
         """
         Runs the analysis on the provided trees and diff result. Yields an analysis result for
 
-        :param base: The base tree.
-        :param other: The compared tree.
         :param changes: The diff result of the provided trees.
         :return: Generator of the results of this analysis.
         """

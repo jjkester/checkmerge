@@ -33,9 +33,9 @@ class ReferenceAnalysis(analysis.Analysis):
     name: str = "Reference analysis"
     description: str = "Finds changes in versions that lead to broken references to identifiers."
 
-    def __call__(self, base: ir.Node, other: ir.Node, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
+    def __call__(self, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
         # Iterate over all changed nodes
-        for node in itertools.chain(base.subtree(), other.subtree()):
+        for node in itertools.chain(changes.base.subtree(), changes.other.subtree()):
             dependencies = list(self.get_dependencies(node))
 
             # Stop analysis for this node if it is not a definition
@@ -64,7 +64,7 @@ class ReferenceAnalysis(analysis.Analysis):
                         } - {None}
 
                         if len(local_conflicts) == 0:
-                            if dependency.root == base:
+                            if dependency.root == changes.base:
                                 change = diff.Change(dependency, dependency.mapping, diff.EditOperation.RENAME)
                             else:
                                 change = diff.Change(dependency.mapping, dependency, diff.EditOperation.RENAME)

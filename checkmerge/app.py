@@ -163,17 +163,20 @@ class RunConfig(object):
         # Initialize data fields
         self._base_path: str = None
         self._other_path: str = None
+        self._ancestor_path: str = None
         self._base_tree: ir.Node = None
         self._other_tree: ir.Node = None
+        self._ancestor_tree: ir.Node = None
         self._diff_result: _diff.DiffResult = None
-        self._analysis_chain: typing.List[typing.Tuple[typing.Any, typing.Iterable]] = []
+        self._analysis_chain: typing.List[typing.Tuple[_analysis.Analysis, typing.Tuple]] = []
 
-    def parse(self, base_path: str, other_path: str) -> "RunConfig":
+    def parse(self, base_path: str, other_path: str, ancestor_path: typing.Optional[str] = None) -> "RunConfig":
         """
         Parses two programs into internal representation trees.
 
         :param base_path: The path to the base program to parse.
         :param other_path: The path to the other program to parse.
+        :param ancestor_path: (Optional) The path to the ancestor of both programs to parse.
         """
         # Copy instance
         rc = copy(self)
@@ -182,21 +185,25 @@ class RunConfig(object):
         parser = rc.parser()
 
         # Parse trees
-        with rc._args((base_path, '_base_path'), (other_path, '_other_path')) as (base_path, other_path):
+        with rc._arg(base_path, '_base_path') as base_path, rc._arg(other_path, '_other_path') as other_path,\
+                rc._arg(ancestor_path, '_ancestor_path') as ancestor_path:
             base_tree = parser.parse_file(base_path)[0]
             other_tree = parser.parse_file(other_path)[0]
+            ancestor_tree = parser.parse_file(ancestor_path)[0] if ancestor_path is not None else None
 
         # Store results
-        rc._base_tree, rc._other_tree = base_tree, other_tree
+        rc._base_tree, rc._other_tree, rc._ancestor_tree = base_tree, other_tree, ancestor_tree
 
         return rc
 
-    def diff(self, base: typing.Optional[ir.Node] = None, other: typing.Optional[ir.Node] = None) -> "RunConfig":
+    def diff(self, base: typing.Optional[ir.Node] = None, other: typing.Optional[ir.Node] = None,
+             ancestor: typing.Optional[ir.Node] = None) -> "RunConfig":
         """
         Calculates the difference between two internal representation trees.
 
         :param base: The base tree.
         :param other: The other tree.
+        :param ancestor: The common ancestor tree.
         """
         # Copy instance
         rc = copy(self)
@@ -205,8 +212,15 @@ class RunConfig(object):
         differ = rc.differ()
 
         # Diff trees
-        with rc._arg(base, '_base_tree') as base, rc._arg(other, '_other_tree') as other:
-            result = differ(base, other)
+        with rc._arg(base, '_base_tree') as base, rc._arg(other, '_other_tree') as other,\
+                rc._arg(ancestor, '_ancestor_tree') as ancestor:
+            if ancestor is not None:
+                base_result = differ(ancestor, base)
+                other_result = differ(ancestor, other)
+                two_way_result = differ(base, other)
+                result = _diff.MergeDiffResult(base, other, ancestor, base_result, other_result, two_way_result)
+            else:
+                result = differ(base, other)
 
         # Tag nodes with changes
         _diff.tag_nodes(result)
@@ -216,15 +230,12 @@ class RunConfig(object):
 
         return rc
 
-    def analyze(self, analysis_cls: typing.Type[_analysis.Analysis], base: typing.Optional[ir.Node] = None,
-                other: typing.Optional[ir.Node] = None,
+    def analyze(self, analysis_cls: typing.Type[_analysis.Analysis],
                 changes: typing.Optional[_diff.DiffResult] = None) -> "RunConfig":
         """
         Schedules the provided analysis. Evaluation is lazy.
 
         :param analysis_cls: The analysis class to use.
-        :param base: The base tree.
-        :param other: The other tree.
         :param changes: The diff result.
         """
         # Copy instance
@@ -234,8 +245,8 @@ class RunConfig(object):
         analysis = analysis_cls()
 
         # Store analysis generator
-        with rc._args((base, '_base_tree'), (other, '_other_tree'), (changes, '_diff_result')) as args:
-            rc._analysis_chain.append((analysis, args))
+        with rc._arg(changes, '_diff_result') as changes:
+            rc._analysis_chain.append((analysis, (changes,)))
 
         return rc
 

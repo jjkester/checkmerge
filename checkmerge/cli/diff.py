@@ -8,8 +8,9 @@ from checkmerge.parse import ParseError
               help="The parser to use. Run `list-parsers` to see the available parsers.")
 @click.argument('base', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.argument('compared', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
+@click.argument('ancestor', required=False, type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @pass_app
-def diff(app: CheckMerge, parser, base, compared):
+def diff(app: CheckMerge, parser, base, compared, ancestor):
     """Calculate and output the differences between the given programs.
 
     The difference between the programs is calculated using the CheckMerge abstract syntax tree (AST) based diff
@@ -24,15 +25,18 @@ def diff(app: CheckMerge, parser, base, compared):
     if app.parser is None or app.diff_algorithm is None:
         return error("Unexpected configuration error.")
 
+    # Set versions to diff
+    versions = tuple(v for v in (base, compared, ancestor) if v is not None)
+
     # Do diff
     try:
         config = app.build_config()
-        result = config.parse(base, compared).diff().changes()
+        result = config.parse(*versions).diff().changes()
     except ParseError as e:
         return error(e)
 
     # Print changes
-    for change in sorted(result.reduced_changes, key=lambda c: c.sort_key):
+    for change in sorted(result.changes, key=lambda c: c.sort_key):
         text = formatting.format_change(change)
         if text:
             click.echo(text)

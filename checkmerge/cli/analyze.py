@@ -16,8 +16,9 @@ from checkmerge.plugins import registry
                    "Run `list-analysis` to see the available analysis.")
 @click.argument('base', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.argument('compared', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
+@click.argument('ancestor', required=False, type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @pass_app
-def analyze(app: CheckMerge, parser, analysis, base, compared):
+def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor):
     """Analyze the differences between the given programs."""
     # Set parser
     try:
@@ -29,10 +30,13 @@ def analyze(app: CheckMerge, parser, analysis, base, compared):
     if app.parser is None or app.diff_algorithm is None:
         return error("Unexpected configuration error.")
 
+    # Set versions to diff
+    versions = tuple(v for v in (base, compared, ancestor) if v is not None)
+
     # Do diff
     try:
         config = app.build_config()
-        config = config.parse(base, compared).diff()
+        config = config.parse(*versions).diff()
     except ParseError as e:
         return error(e)
 

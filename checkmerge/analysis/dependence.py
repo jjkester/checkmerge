@@ -22,11 +22,11 @@ class DependenceAnalysis(analysis.Analysis):
     name: str = 'Dependence analysis'
     description: str = 'Finds changes in two versions that modify the same memory.'
 
-    def __call__(self, base: ir.Node, other: ir.Node, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
+    def __call__(self, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
         results = []
 
         # Get all nodes that are of interest
-        all_nodes = itertools.chain(base.subtree(), other.subtree())
+        all_nodes = itertools.chain(changes.base.subtree(), changes.other.subtree())
         memory_nodes = filter(lambda n: n.is_memory_operation, all_nodes)
 
         # Iterate over all changed memory operations in both trees
@@ -43,7 +43,7 @@ class DependenceAnalysis(analysis.Analysis):
         for result in analysis.optimize_change_sets(results):
             roots = {n.root for n in result}
 
-            if base in roots and other in roots:
+            if changes.base in roots and changes.other in roots:
                 result_changes = {changes.changes_by_node.get(node) for node in result} - {None}
                 yield MemoryDependenceConflict(*result_changes, analysis=self)
 

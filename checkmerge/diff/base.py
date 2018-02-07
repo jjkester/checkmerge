@@ -1,7 +1,6 @@
 import enum
-import typing
-
 import os
+import typing
 
 from checkmerge.ir import tree
 
@@ -127,13 +126,6 @@ class DiffResult(object):
         return self._changes
 
     @property
-    def reduced_changes(self) -> DiffChanges:
-        """The changes extracted from nodes expressed as inserts and deletes."""
-        if self._reduced_changes is None:
-            self._reduced_changes = list(reduce_changes(self.changes))
-        return self._reduced_changes
-
-    @property
     def changes_by_node(self):
         """Dictionary for looking up a change by a node."""
         if self._changes_by_node is None:
@@ -148,6 +140,59 @@ class DiffResult(object):
                 if change.other is not None:
                     self._changes_by_node[change.other] = change
         return self._changes_by_node
+
+
+class MergeDiffResult(DiffResult):
+    """
+    Special cased diff result for merges.
+    """
+    def __init__(self, base: tree.Node, other: tree.Node, ancestor: tree.Node, base_result: DiffResult,
+                 other_result: DiffResult, two_way_result: typing.Optional[DiffResult] = None):
+        # Build combined mapping
+        mapping = {}
+
+        # Nodes mapped to a common ancestor node are mapped together
+        for key in set(base_result.mapping.keys()).intersection(set(other_result.mapping.keys())):
+            mapping[base_result.mapping[key]] = other_result.mapping[key]
+
+        # If there is a two-way diff result, add additional mappings if none of the nodes is already mapped
+        if two_way_result is not None:
+            for base_node, other_node in two_way_result.mapping.items():
+                if base_node not in mapping.keys() and other_node not in mapping.values():
+                    mapping[base_node] = other_node
+
+        # Super init
+        super(MergeDiffResult, self).__init__(base, other, mapping)
+
+        # Set additional properties
+        self._ancestor = ancestor
+        self._base_result = base_result
+        self._other_result = other_result
+
+    @property
+    def ancestor(self) -> tree.Node:
+        """The ancestor tree."""
+        return self._ancestor
+
+    @property
+    def base_mapping(self) -> DiffMapping:
+        """The mapping from nodes of the ancestor tree to nodes of the base tree."""
+        return self._base_result.mapping
+
+    @property
+    def other_mapping(self) -> DiffMapping:
+        """The mapping from nodes of the ancestor tree to nodes of the other tree."""
+        return self._other_result.mapping
+
+    @property
+    def base_changes(self) -> DiffChanges:
+        """The changes in the base version with respect to the ancestor."""
+        return self._base_result.changes
+
+    @property
+    def other_changes(self) -> DiffChanges:
+        """The changes in the other version with respect to the ancestor."""
+        return self._other_result.changes
 
 
 def calculate_changes(base: tree.Node, other: tree.Node, mapping: DiffMapping) -> ChangesGenerator:
