@@ -34,55 +34,49 @@ class ReferenceAnalysis(analysis.Analysis):
     description: str = "Finds changes in versions that lead to broken references to identifiers."
 
     def __call__(self, changes: diff.DiffResult) -> analysis.AnalysisResultGenerator:
-        # Iterate over all changed nodes
-        for node in itertools.chain(changes.base.subtree(), changes.other.subtree()):
-            dependencies = list(self.get_dependencies(node))
+        # Exit if the diff is not a three-way diff
+        if not isinstance(changes, diff.MergeDiffResult):
+            return
 
-            # Stop analysis for this node if it is not a definition
-            if len(dependencies) == 0:
-                continue
+        # Iterate over all declarations
+        for declaration in filter(lambda n: n.is_definition, changes.ancestor.subtree()):
+            # Get relevant changes in the declaration
+            base_change: diff.Change = changes.base_changes_by_node.get(declaration)
+            other_change: diff.Change = changes.other_changes_by_node.get(declaration)
 
-            conflicts = {changes.changes_by_node.get(node)}
+            # Do analysis if there is a change
+            if base_change is not None or other_change is not None:
+                # Get all uses of the declaration
+                uses = set(self.get_uses(declaration))
 
-            if node.mapping is None:
-                conflict_type = DeletedReferenceConflict
-                for dependency in dependencies:
-                    if dependency.mapping is not None:
-                        conflicts.add(dependency)
-                        conflicts.add(dependency.mapping)
-            else:
-                conflict_type = RenamedReferenceConflict
-                mapped_dependencies = set(self.get_dependencies(node.mapping))
+                # Get declarations in other versions
+                base_declaration = changes.base_mapping.get(declaration)
+                other_declaration = changes.other_mapping.get(declaration)
 
-                conflicts.add(changes.changes_by_node.get(node.mapping))
-
-                for dependency in dependencies:
-                    if dependency.mapping is not None and dependency.mapping not in mapped_dependencies:
-                        local_conflicts = {
-                            changes.changes_by_node.get(dependency),
-                            changes.changes_by_node.get(dependency.mapping),
-                        } - {None}
-
-                        if len(local_conflicts) == 0:
-                            if dependency.root == changes.base:
-                                change = diff.Change(dependency, dependency.mapping, diff.EditOperation.RENAME)
-                            else:
-                                change = diff.Change(dependency.mapping, dependency, diff.EditOperation.RENAME)
-                            local_conflicts = {change}
-
-                        conflicts.update(local_conflicts)
-
-            if len(conflicts) > 1:
-                yield conflict_type(*conflicts, analysis=self)
+                if base_change is not None and other_declaration is not None:
+                    other_uses = set(self.get_uses(other_declaration))
+                    conflicting_nodes = other_uses.difference(map(changes.other_mapping.get, uses))
+                    yield from self.get_conflict(base_change.op, conflicting_nodes, changes)
+                if other_change is not None and base_declaration is not None:
+                    base_uses = set(self.get_uses(base_declaration))
+                    conflicting_nodes = base_uses.difference(map(changes.base_mapping.get, uses))
+                    yield from self.get_conflict(other_change.op, conflicting_nodes, changes)
 
     @classmethod
-    def get_dependencies(cls, node: ir.Node) -> typing.Generator[ir.Node, None, None]:
+    def get_uses(cls, node: ir.Node) -> typing.Generator[ir.Node, None, None]:
         """
-        Collects the nodes referencing the given node.
+        Yields the nodes using the given node.
 
-        :param node: The node to analyze.
-        :return: A generator yielding the nodes referencing this node.
+        :param node: The node to get the uses for.
+        :return: A generator yielding the nodes referencing the given node.
         """
-        yield from map(lambda x: x.node,
-                       filter(lambda y: y.type == ir.DependencyType.REFERENCE and y.reverse is True,
-                              node.reverse_dependencies))
+        yield from (d.node for d in node.reverse_dependencies if d.type == ir.DependencyType.REFERENCE)
+
+    def get_conflict(self, op: diff.EditOperation, nodes: typing.Iterable[ir.Node], result: diff.DiffResult):
+        conflicting_changes = {result.changes_by_node.get(node) for node in nodes} - {None}
+
+        if len(conflicting_changes) > 0:
+            if op == diff.EditOperation.RENAME:
+                yield RenamedReferenceConflict(*conflicting_changes, analysis=self)
+            elif op == diff.EditOperation.DELETE:
+                yield DeletedReferenceConflict(*conflicting_changes, analysis=self)

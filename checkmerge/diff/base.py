@@ -194,6 +194,14 @@ class MergeDiffResult(DiffResult):
         """The changes in the other version with respect to the ancestor."""
         return self._other_result.changes
 
+    @property
+    def base_changes_by_node(self):
+        return self._base_result.changes_by_node
+
+    @property
+    def other_changes_by_node(self):
+        return self._other_result.changes_by_node
+
 
 def calculate_changes(base: tree.Node, other: tree.Node, mapping: DiffMapping) -> ChangesGenerator:
     """
