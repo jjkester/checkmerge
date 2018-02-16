@@ -17,5 +17,5 @@ int test(int actual, int expected) {
 }
 
 int main() {
-    return test(run(5), 10);
+    return test(exec(5), 10);
 }

@@ -8,8 +8,8 @@ int run(int n) {
     return r;
 }
 
-int test(int a, int b) {
-    int diff = a - b;
+int test(int actual, int expected) {
+    int diff = actual - expected;
     if (diff < 0) {
         return 0 - diff;
     }
@@ -17,5 +17,5 @@ int test(int a, int b) {
 }
 
 int main() {
-    return test(run(5), 10);
+    return test(run(5), 10) + test(run(10), 20);
 }
