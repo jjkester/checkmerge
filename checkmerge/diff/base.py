@@ -16,12 +16,13 @@ class DiffAlgorithm(object):
     Base class for diff algorithms.
     """
 
-    def __call__(self, base: tree.Node, other: tree.Node) -> "DiffResult":
+    def __call__(self, base: tree.Node, other: tree.Node, mapping: typing.Optional[DiffMapping] = None) -> "DiffResult":
         """
         Runs the diff algorithm to calculate a mapping between nodes of the base tree and the other tree.
 
         :param base: The base tree.
         :param other: The tree to compare.
+        :param mapping: A mapping from nodes of the base tree to nodes of the other tree to start off with.
         :return: A mapping from nodes of the base tree to nodes of the other tree.
         """
         raise NotImplementedError()
@@ -149,11 +150,7 @@ class MergeDiffResult(DiffResult):
     def __init__(self, base: tree.Node, other: tree.Node, ancestor: tree.Node, base_result: DiffResult,
                  other_result: DiffResult, two_way_result: typing.Optional[DiffResult] = None):
         # Build combined mapping
-        mapping = {}
-
-        # Nodes mapped to a common ancestor node are mapped together
-        for key in set(base_result.mapping.keys()).intersection(set(other_result.mapping.keys())):
-            mapping[base_result.mapping[key]] = other_result.mapping[key]
+        mapping = combine_mappings(base_result.mapping, other_result.mapping)
 
         # If there is a two-way diff result, add additional mappings if none of the nodes is already mapped
         if two_way_result is not None:
@@ -201,6 +198,23 @@ class MergeDiffResult(DiffResult):
     @property
     def other_changes_by_node(self):
         return self._other_result.changes_by_node
+
+
+def combine_mappings(base_mapping: DiffMapping, other_mapping: DiffMapping) -> DiffMapping:
+    """
+    Combines the given mappings by matching the common key nodes. Returns a mapping from the values of the first mapping
+    to the values of the second mapping for values with the same key.
+
+    Requires the keys of both mappings to be of the same tree.
+
+    :param base_mapping: Mapping from a common ancestor to the base version.
+    :param other_mapping: Mapping from a common ancestor to the other version.
+    :return: Mapping from the base version to the other version.
+    """
+    mapping = {}
+    for key in set(base_mapping.keys()).intersection(set(other_mapping.keys())):
+        mapping[base_mapping[key]] = other_mapping[key]
+    return mapping
 
 
 def calculate_changes(base: tree.Node, other: tree.Node, mapping: DiffMapping) -> ChangesGenerator:

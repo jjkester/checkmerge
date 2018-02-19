@@ -37,19 +37,20 @@ class GumTreeDiff(DiffAlgorithm):
         self.min_dice = min_dice
         self.max_size = max_size
 
-    def __call__(self, base: tree.Node, other: tree.Node) -> DiffResult:
+    def __call__(self, base: tree.Node, other: tree.Node, mapping: typing.Optional[DiffMapping] = None) -> DiffResult:
         """
         Runs the GumTree algorithm to find a mapping between the nodes of both trees.
 
         :param base: The base tree.
         :param other: The tree to compare.
+        :param mapping: A mapping from nodes of the base tree to nodes of the other tree to start off with.
         :return: A mapping between nodes from the base tree to nodes from the other tree.
         """
         mapping = self.top_down(base, other)
         mapping = self.bottom_up(base, other, mapping)
         return DiffResult(base, other, mapping)
 
-    def top_down(self, base: tree.Node, other: tree.Node) -> DiffMapping:
+    def top_down(self, base: tree.Node, other: tree.Node, mapping: typing.Optional[DiffMapping] = None) -> DiffMapping:
         """
         Runs the GumTree top down phase on the given trees.
 
@@ -57,6 +58,7 @@ class GumTreeDiff(DiffAlgorithm):
 
         :param base: The base tree.
         :param other: The tree to compare.
+        :param mapping: A mapping from nodes of the base tree to nodes of the other tree to start off with.
         :return: A mapping between nodes from the base tree to nodes from the other tree.
         """
         # List of nodes to evaluate ordered by their height (one for each tree)
@@ -68,6 +70,11 @@ class GumTreeDiff(DiffAlgorithm):
 
         # Decided on mappings
         m: DiffMapping = bidict.bidict()
+
+        # Add existing mappings
+        if mapping is not None:
+            for k, v in mapping.items():
+                m[k] = v
 
         # Start with the root nodes
         l1.push(base)  # line 1

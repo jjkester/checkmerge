@@ -1,4 +1,5 @@
-from .base import Change, DiffAlgorithm, DiffChanges, DiffResult, EditOperation, MergeDiffResult, tag_nodes
+from .base import Change, DiffAlgorithm, DiffChanges, DiffResult, EditOperation, MergeDiffResult, combine_mappings, \
+    tag_nodes
 
 
 __all__ = [
@@ -8,5 +9,6 @@ __all__ = [
     DiffChanges,
     Change,
     EditOperation,
+    combine_mappings,
     tag_nodes,
 ]
