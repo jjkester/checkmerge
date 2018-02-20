@@ -95,3 +95,16 @@ def remove_subsets(sets: typing.Iterable[typing.Set[T]]) -> typing.Iterable[typi
             result.add(frozenset(s))
 
     yield from (set(s) for s in result)
+
+
+def exists(iterable: typing.Iterable[T], pred: typing.Optional[typing.Callable[[T], bool]] = None):
+    """
+    Iterates over the given iterable until a value is found that evaluates to true. If `pred` is given, this function
+    will be used for the evaluation, otherwise the boolean value of the objects in the iterable are checked.
+    Partially consumes the iterable.
+
+    :param iterable: The iterable to check.
+    :param pred: The predicate to check the objects against.
+    :return: Whether an object satisfying the predicate exists in the iterable.
+    """
+    return False if next(filter(pred, iterable), False) is False else True

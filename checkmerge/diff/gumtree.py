@@ -7,7 +7,7 @@ import zss
 
 from checkmerge.diff.base import DiffAlgorithm, DiffMapping, DiffResult
 from checkmerge.ir import tree
-from checkmerge.util.collections import PriorityList
+from checkmerge.util.collections import PriorityList, exists
 
 
 class GumTreeDiff(DiffAlgorithm):
@@ -98,8 +98,8 @@ class GumTreeDiff(DiffAlgorithm):
                 for t1, t2 in filter(lambda x: self.isomorphic(*x), itertools.product(h1, h2)):  # line 12, 13
                     # If there are multiple candidates for a subtree, add these to the candidate set
                     # Otherwise add the subtrees and their children to the mappings.
-                    if list(filter(lambda tx: self.isomorphic(t1, tx) and tx != t2, other.subtree())) or \
-                            list(filter(lambda tx: self.isomorphic(tx, t2) and tx != t1, base.subtree())):  # line 14
+                    if exists(other.subtree(), lambda tx: self.isomorphic(t1, tx) and tx != t2) or \
+                            exists(base.subtree(), lambda tx: self.isomorphic(tx, t2) and tx != t1):  # Line 14
                         a.append((t1, t2))  # line 15
                     else:
                         # Because the trees are isomorphic walking them in the same order results in the correct
