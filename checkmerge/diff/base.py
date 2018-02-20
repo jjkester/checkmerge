@@ -6,7 +6,7 @@ from checkmerge.ir import tree
 
 
 # Diff algorithm types
-DiffMapping = typing.Dict[tree.Node, tree.Node]
+DiffMapping = typing.MutableMapping[tree.Node, tree.Node]
 ChangesGenerator = typing.Generator["Change", None, None]
 DiffChanges = typing.List["Change"]
 

@@ -69,7 +69,7 @@ class GumTreeDiff(DiffAlgorithm):
         a: typing.List[typing.Tuple[tree.Node, tree.Node]] = []
 
         # Decided on mappings
-        m: DiffMapping = bidict.bidict()
+        m = bidict.bidict()
 
         # Add existing mappings
         if mapping is not None:
@@ -202,7 +202,7 @@ class GumTreeDiff(DiffAlgorithm):
         return 0 - t.height
 
     @staticmethod
-    def dice(t1: tree.Node, t2: tree.Node, mappings: typing.Dict[tree.Node, tree.Node]) -> float:
+    def dice(t1: tree.Node, t2: tree.Node, mappings: DiffMapping) -> float:
         """
         The dice function calculates a ratio of common descendants between two nodes given existing mappings between
         nodes. The dice coefficient ranges between 0 and 1. A value of 0 indicates that no descendants match while 1
