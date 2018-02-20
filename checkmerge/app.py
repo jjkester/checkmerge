@@ -208,28 +208,25 @@ class RunConfig(object):
         # Copy instance
         rc = copy(self)
 
-        # Construct differ
-        differ = rc.differ()
-
         # Diff trees
         with rc._arg(base, '_base_tree') as base, rc._arg(other, '_other_tree') as other,\
                 rc._arg(ancestor, '_ancestor_tree') as ancestor:
             if ancestor is not None:
                 # Diff each version since the common ancestor
-                base_result = differ(ancestor, base)
-                other_result = differ(ancestor, other)
+                base_result = rc.differ()(ancestor, base)
+                other_result = rc.differ()(ancestor, other)
 
                 # Merge results to get the matching nodes between the two versions
                 mapping = _diff.combine_mappings(base_result.mapping, other_result.mapping)
 
                 # Try to remove matching changes by diffing the two versions, assuming the mappings from the ancestor
-                two_way_result = differ(base, other, mapping)
+                two_way_result = rc.differ()(base, other, mapping)
 
                 # Build a combined result
                 result = _diff.MergeDiffResult(base, other, ancestor, base_result, other_result, two_way_result)
             else:
                 # Diff the two versions
-                result = differ(base, other)
+                result = rc.differ()(base, other)
 
         # Tag nodes with changes
         _diff.tag_nodes(result)
