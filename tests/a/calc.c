@@ -6,6 +6,6 @@ int calc(int a, int b) {
     return c;
 }
 
-int main() {
-    return calc(1,1);
-}
+//int main() {
+//    return calc(1,1);
+//}
