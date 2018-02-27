@@ -1,8 +1,10 @@
 #!/bin/bash
 
+shopt -s globstar
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TEST_DIR="${DIR}"
-TEST_FILES="${TEST_DIR}/*/*.c"
+TEST_FILES="${TEST_DIR}/*/**/*.c"
 error=0
 
 if [ -z ${CM_LIB+x} ]; then echo "CM_LIB environment variable not set!"; exit 1; fi
