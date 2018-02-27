@@ -80,14 +80,16 @@ def format_node_in_code(node: ir.Node, symbol: str = '', color: typing.Optional[
     assert node.location.file
     ranges = sorted(node_ranges(node))
 
+    if len(ranges) == 0:
+        return ''
+
     # Fill in ranges
-    if len(ranges) > 0:
-        prev = ranges[0]
-        for cur in ranges[1:].copy():
-            if cur[0] != prev[1]:
-                ranges.insert(ranges.index(cur), (prev[1], cur[0], False))
-        if ranges[0][0][1] != 0:
-            ranges.insert(0, ((ranges[0][0][0], 0), ranges[0][0], False))
+    prev = ranges[0]
+    for cur in ranges[1:].copy():
+        if cur[0] != prev[1]:
+            ranges.insert(ranges.index(cur), (prev[1], cur[0], False))
+    if ranges[0][0][1] != 0:
+        ranges.insert(0, ((ranges[0][0][0], 0), ranges[0][0], False))
 
     # Get all involved lines
     line_numbers = list(range(min(s[0] for s, e, t in ranges), max(e[0] for s, e, t in ranges) + 1))

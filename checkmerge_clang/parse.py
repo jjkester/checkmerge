@@ -339,8 +339,8 @@ def customize_operator(cursor: clang.Cursor, kwargs: NodeData) -> NodeData:
         for key in (f"{t.location.line}:{t.location.column}:{t.spelling}" for t in child.get_tokens()):
             tokens.pop(key, None)
 
-    if len(tokens) < 1:
-        raise parse.ParseError("Unexpected error: operator does not have any non-child tokens.")
+    # if len(tokens) < 1:
+    #     raise parse.ParseError("Unexpected error: Operator does not have any non-child tokens.")
 
     # Get token objects ordered properly
     tokens = list(map(lambda y: y[1], sorted(tokens.items(), key=lambda x: x[0])))
