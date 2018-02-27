@@ -1,7 +1,5 @@
 import typing
 
-import itertools
-
 from checkmerge import analysis, diff, ir
 
 
@@ -52,14 +50,15 @@ class ReferenceAnalysis(analysis.Analysis):
                 # Get declarations in other versions
                 base_declaration = changes.base_mapping.get(declaration)
                 other_declaration = changes.other_mapping.get(declaration)
+                declarations = {base_declaration, other_declaration} - {None}
 
                 if base_change is not None and other_declaration is not None:
                     other_uses = set(self.get_uses(other_declaration))
-                    conflicting_nodes = other_uses.difference(map(changes.other_mapping.get, uses))
+                    conflicting_nodes = other_uses.difference(map(changes.other_mapping.get, uses)).union(declarations)
                     yield from self.get_conflict(base_change.op, conflicting_nodes, changes)
                 if other_change is not None and base_declaration is not None:
                     base_uses = set(self.get_uses(base_declaration))
-                    conflicting_nodes = base_uses.difference(map(changes.base_mapping.get, uses))
+                    conflicting_nodes = base_uses.difference(map(changes.base_mapping.get, uses)).union(declarations)
                     yield from self.get_conflict(other_change.op, conflicting_nodes, changes)
 
     @classmethod
@@ -73,10 +72,32 @@ class ReferenceAnalysis(analysis.Analysis):
         yield from (d.node for d in node.reverse_dependencies if d.type == ir.DependencyType.REFERENCE)
 
     def get_conflict(self, op: diff.EditOperation, nodes: typing.Iterable[ir.Node], result: diff.DiffResult):
-        conflicting_changes = {result.changes_by_node.get(node) for node in nodes} - {None}
+        changes = set()
+        base_nodes = set()
+        other_nodes = set()
 
-        if len(conflicting_changes) > 0:
+        for node in nodes:
+            change = result.changes_by_node.get(node)
+
+            if change:
+                changes.add(change)
+            elif node.root == result.base:
+                base_nodes.add(node)
+            elif node.root == result.other:
+                other_nodes.add(node)
+
+        if changes:
             if op == diff.EditOperation.RENAME:
-                yield RenamedReferenceConflict(*conflicting_changes, analysis=self)
+                yield RenamedReferenceConflict(
+                    changes=changes,
+                    base_nodes=base_nodes,
+                    other_nodes=other_nodes,
+                    analysis=self,
+                )
             elif op == diff.EditOperation.DELETE:
-                yield DeletedReferenceConflict(*conflicting_changes, analysis=self)
+                yield DeletedReferenceConflict(
+                    changes=changes,
+                    base_nodes=base_nodes,
+                    other_nodes=other_nodes,
+                    analysis=self,
+                )

@@ -18,9 +18,13 @@ class AnalysisResult(object):
     description: str = ''
     severity: float = 0.0
 
-    def __init__(self, *conflicting_changes: diff.Change, analysis: "Analysis"):
+    def __init__(self, changes: typing.Iterable[diff.Change], analysis: "Analysis",
+                 base_nodes: typing.Optional[typing.Iterable[ir.Node]] = None,
+                 other_nodes: typing.Optional[typing.Iterable[ir.Node]] = None):
         self.analysis = analysis
-        self.changes = conflicting_changes
+        self.changes = set(changes)
+        self.base_nodes = set(base_nodes) if base_nodes else set()
+        self.other_nodes = set(other_nodes) if other_nodes else set()
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: {str(self)}>"
@@ -28,35 +32,35 @@ class AnalysisResult(object):
     def __str__(self):
         return f"{self.name} ({len(self.changes)} changes)"
 
-    def __hash__(self):
-        return hash((self.__class__, self.analysis, self.changes))
-
-    def __eq__(self, other):
-        return self.__class__ == other.__class__ and self.analysis == other.analysis and self.changes == other.changes
-
-    def get_base_nodes(self) -> typing.Set[ir.Node]:
+    def get_changed_base_nodes(self) -> typing.Set[ir.Node]:
         """
         :return: The nodes from the base tree in the changes in this result.
         """
         return {change.base for change in self.changes if change.base is not None}
 
-    def get_other_nodes(self) -> typing.Set[ir.Node]:
+    def get_changed_other_nodes(self) -> typing.Set[ir.Node]:
         """
         :return: The nodes from the other tree in the changes in this result.
         """
         return {change.other for change in self.changes if change.other is not None}
 
+    def get_additional_base_nodes(self) -> typing.Set[ir.Node]:
+        return self.base_nodes
+
+    def get_additional_other_nodes(self) -> typing.Set[ir.Node]:
+        return self.other_nodes
+
     def get_base_locations(self) -> typing.Set[ir.Range]:
         """
         :return: The set of (compressed) locations in the base tree affected by this conflict.
         """
-        return set(ir.Range.compress(*map(lambda n: n.source_range, self.get_base_nodes())))
+        return set(ir.Range.compress(*map(lambda n: n.source_range, self.get_changed_base_nodes())))
 
     def get_other_locations(self) -> typing.Set[ir.Range]:
         """
         :return: The set of (compressed) locations in the other tree affected by this conflict.
         """
-        return set(ir.Range.compress(*map(lambda n: n.source_range, self.get_other_nodes())))
+        return set(ir.Range.compress(*map(lambda n: n.source_range, self.get_changed_other_nodes())))
 
 
 class Analysis(object):

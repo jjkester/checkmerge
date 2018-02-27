@@ -2,6 +2,7 @@ import itertools
 import typing
 
 from checkmerge import analysis, diff, ir
+from checkmerge.util import collections
 
 
 class MemoryDependenceConflict(analysis.AnalysisResult):
@@ -40,12 +41,14 @@ class DependenceAnalysis(analysis.Analysis):
                 results.append(changed_nodes)
 
         # Optimize and yield results
-        for result in analysis.optimize_change_sets(results):
-            roots = {n.root for n in result}
+        results_changes = [
+            {changes.changes_by_node.get(node) for node in result} - {None}
+            for result in analysis.optimize_change_sets(results)
+            if len({n.root for n in result}) > 1
+        ]
 
-            if changes.base in roots and changes.other in roots:
-                result_changes = {changes.changes_by_node.get(node) for node in result} - {None}
-                yield MemoryDependenceConflict(*result_changes, analysis=self)
+        for result in collections.remove_subsets(results_changes):
+            yield MemoryDependenceConflict(result, analysis=self)
 
     @classmethod
     def recursive_memory_dependencies(cls, node: ir.Node, reverse: bool = False) -> typing.Set[ir.Node]:

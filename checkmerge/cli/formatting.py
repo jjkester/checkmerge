@@ -229,8 +229,14 @@ class CheckMergeFormatter(click.HelpFormatter):
 
     def write_conflict(self, conflict: analysis.AnalysisResult):
         with self.section(f"{conflict.name} (severity: {conflict.severity})"):
-            for change in conflict.changes:
+            for change in sorted(conflict.changes, key=lambda c: c.sort_key):
                 self.write_change(change)
+            for node in sorted(conflict.base_nodes.union(conflict.other_nodes), key=lambda n: n.location):
+                code = format_node_in_code(node, '=', 'blue')
+                lines = len(code.split('\n'))
+                self.write_text(format_filename(node.location.file, '='), False)
+                self.write_text(format_line_diff(f"{node.location.line},{node.location.line + lines}", ''))
+                self.write_text(code, False)
 
     def get_metric_dl(self, metric: report.Metric, indent=0):
         rows = [(f"{' ' * indent}{metric.name}", metric.value_as_str())]
