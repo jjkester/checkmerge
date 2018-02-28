@@ -2,6 +2,8 @@ import enum
 import os
 import typing
 
+import itertools
+
 from checkmerge.ir import tree
 
 
@@ -142,6 +144,14 @@ class DiffResult(object):
                     self._changes_by_node[change.other] = change
         return self._changes_by_node
 
+    @property
+    def change_count(self):
+        return len(self.changes)
+
+    @property
+    def node_count(self):
+        return sum(1 for n in itertools.chain(self.base.nodes, self.other.nodes))
+
 
 class MergeDiffResult(DiffResult):
     """
@@ -198,6 +208,10 @@ class MergeDiffResult(DiffResult):
     @property
     def other_changes_by_node(self):
         return self._other_result.changes_by_node
+
+    @property
+    def node_count(self):
+        return sum(1 for n in itertools.chain(self._base_result.base.nodes, self.base.nodes, self.other.nodes))
 
 
 def combine_mappings(base_mapping: DiffMapping, other_mapping: DiffMapping) -> DiffMapping:

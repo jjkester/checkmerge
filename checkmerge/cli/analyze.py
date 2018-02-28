@@ -14,12 +14,16 @@ from checkmerge.plugins import registry
 @click.option('--analysis', '-a', 'analysis', type=click.STRING, required=True, multiple=True,
               help="The analysis to perform. Repeat this option to perform multiple analysis."
                    "Run `list-analysis` to see the available analysis.")
+@click.option('--time/--no-time', 'time', default=False, help="Whether to show run times of different operations.")
+@click.option('--stats/--no-stats', 'stats', default=False, help="Whether to show statistics.")
 @click.argument('base', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.argument('compared', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.argument('ancestor', required=False, type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @pass_app
-def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor):
+def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor, time, stats):
     """Analyze the differences between the given programs."""
+    app.start_timer('Total')
+
     # Set parser
     try:
         app.parser = parser
@@ -36,7 +40,12 @@ def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor):
     # Do diff
     try:
         config = app.build_config()
-        config = config.parse(*versions).diff()
+
+        with app.time('Parse'):
+            config = config.parse(*versions)
+
+        with app.time('Diff'):
+            config = config.diff()
     except ParseError as e:
         return error(e)
 
@@ -49,14 +58,31 @@ def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor):
             config = config.analyze(analysis_cls)
 
     # Do analysis
-    results = list(config.analysis())
+    with app.time('Analysis'):
+        results = list(config.analysis())
 
-    # Build report
-    report = AnalysisReport(results)
-
-    # Write report
     formatter = CheckMergeFormatter()
-    formatter.write_report(report)
+
+    with app.time('Report'):
+        # Build report
+        report = AnalysisReport(results)
+
+        # Write report
+        formatter.write_report(report)
+
+    app.stop_timer('Total')
+
+    # Write timings and stats
+    if time:
+        with formatter.section('Timing results'):
+            formatter.write_dl(map(lambda i: (i[0], f"{i[1].total_seconds():7.3f}"), app.get_times().items()))
+    if stats:
+        with formatter.section('Statistics'):
+            formatter.write_dl((
+                ('Number of AST nodes', str(config.changes().node_count)),
+                ('Number of changes', str(config.changes().change_count)),
+            ))
+
     click.echo(formatter.getvalue(), nl=False)
 
 
@@ -68,4 +94,4 @@ def test(ctx: click.Context, file_name, test_dir):
     """Run a test. Finds the test files in the specified directory. The file name of the test must be relative to a
     version directory in the test directory."""
     ctx.invoke(analyze, parser='clang', analysis=['dependence', 'reference'], base=f"{test_dir}/a/{file_name}",
-               compared=f"{test_dir}/b/{file_name}", ancestor=f"{test_dir}/0/{file_name}")
+               compared=f"{test_dir}/b/{file_name}", ancestor=f"{test_dir}/0/{file_name}", time=True, stats=True)

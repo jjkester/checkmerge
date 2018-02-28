@@ -3,6 +3,8 @@ import typing
 from contextlib import contextmanager
 from copy import copy
 
+import datetime
+
 from checkmerge import analysis as _analysis, diff as _diff, ir, parse, plugins, version
 from checkmerge.diff import gumtree
 
@@ -112,6 +114,7 @@ class CheckMerge(object, metaclass=CheckMergeMeta):
     def __init__(self):
         self._parser: typing.Optional[typing.Type[parse.Parser]] = None
         self._options: typing.Dict[str, typing.Any] = {}
+        self._timers: typing.Dict[str, typing.Tuple[datetime.datetime, typing.Optional[datetime.datetime]]] = {}
 
     @property
     def parser(self) -> typing.Optional[typing.Type[parse.Parser]]:
@@ -146,6 +149,50 @@ class CheckMerge(object, metaclass=CheckMergeMeta):
             diff_cls=self.diff_algorithm,
             **self.options,
         )
+
+    def start_timer(self, key: str) -> None:
+        """
+        Starts a timer with the given key.
+
+        :param key: The name of the timer.
+        """
+        self._timers[key] = (datetime.datetime.now(), None)
+
+    def stop_timer(self, key: str) -> None:
+        """
+        Stops the timer with the given key.
+
+        :param key: The name of the timer.
+        """
+        try:
+            self._timers[key] = (self._timers[key][0], datetime.datetime.now())
+        except KeyError:
+            pass
+
+    def get_time(self, key: str) -> datetime.timedelta:
+        """
+        Returns the actual run time of a timer. If the timer has not been stopped the current time is used.
+
+        :param key: The name of the timer.
+        :return: The run time of the timer.
+        """
+        start = self._timers[key][0]
+        end = self._timers[key][1] or datetime.datetime.now()
+        return end - start
+
+    def get_times(self) -> typing.Mapping[str, datetime.timedelta]:
+        """
+        Returns the run times of all stopped timers.
+        :return: The run times of all stopped timers.
+        """
+        return {key: value[1] - value[0] for key, value in self._timers.items() if value is not None}
+
+    @contextmanager
+    def time(self, key: str):
+        """Generator starting and stopping a timer with the given key to be used in a `with` statement."""
+        self.start_timer(key)
+        yield
+        self.stop_timer(key)
 
 
 class RunConfig(object):
