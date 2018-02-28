@@ -58,3 +58,14 @@ def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor):
     formatter = CheckMergeFormatter()
     formatter.write_report(report)
     click.echo(formatter.getvalue(), nl=False)
+
+
+@cli.command()
+@click.argument('test_dir', type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@click.argument('file_name', type=click.STRING)
+@click.pass_context
+def test(ctx: click.Context, file_name, test_dir):
+    """Run a test. Finds the test files in the specified directory. The file name of the test must be relative to a
+    version directory in the test directory."""
+    ctx.invoke(analyze, parser='clang', analysis=['dependence', 'reference'], base=f"{test_dir}/a/{file_name}",
+               compared=f"{test_dir}/b/{file_name}", ancestor=f"{test_dir}/0/{file_name}")
