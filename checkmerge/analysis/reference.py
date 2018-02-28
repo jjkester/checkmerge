@@ -86,7 +86,7 @@ class ReferenceAnalysis(analysis.Analysis):
             elif node.root == result.other:
                 other_nodes.add(node)
 
-        if changes:
+        if len(changes) > 1:
             if op == diff.EditOperation.RENAME:
                 yield RenamedReferenceConflict(
                     changes=changes,
