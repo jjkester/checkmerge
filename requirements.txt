@@ -1,3 +1,4 @@
+bidict
 click
 graphviz
 pylev3
