@@ -123,42 +123,6 @@ def format_node_in_code(node: ir.Node, symbol: str = '', color: typing.Optional[
     return click.style(symbol, fg=color) + f"{os.linesep}{symbol}".join(buffer).strip()
 
 
-def format_change(change: diff.Change) -> str:
-    """
-    Formats a change.
-
-    :param change: The change to format.
-    :return: The formatted change.
-    """
-    buffer = []
-
-    base_code = other_code = ''
-    base_lines = other_lines = ''
-
-    if change.base:
-        base_code = format_node_in_code(change.base, '-', 'red')
-        lines = len(base_code.split('\n'))
-        base_lines = f"{change.base.location.line},{change.base.location.line + lines}"
-    if change.other:
-        other_code = format_node_in_code(change.other, '+', 'green')
-        lines = len(other_code.split('\n'))
-        other_lines = f"{change.other.location.line},{change.other.location.line + lines}"
-
-    if base_lines:
-        buffer.append(format_filename(change.base.location.file, '-'))
-    if other_lines:
-        buffer.append(format_filename(change.other.location.file, '+'))
-    if base_lines or other_lines:
-        buffer.append(format_line_diff(base_lines, other_lines))
-
-    if base_code:
-        buffer.append(base_code)
-    if other_code:
-        buffer.append(other_code)
-
-    return os.linesep.join(buffer)
-
-
 class CheckMergeFormatter(click.HelpFormatter):
     """
     CheckMerge specific CLI formatter.

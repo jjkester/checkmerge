@@ -36,7 +36,7 @@ def diff(app: CheckMerge, parser, base, compared, ancestor):
         return error(e)
 
     # Print changes
+    formatter = formatting.CheckMergeFormatter()
     for change in sorted(result.changes, key=lambda c: c.sort_key):
-        text = formatting.format_change(change)
-        if text:
-            click.echo(text)
+        formatter.write_change(change)
+    click.echo(formatter.getvalue(), nl=False)
