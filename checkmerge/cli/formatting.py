@@ -88,6 +88,7 @@ def format_node_in_code(node: ir.Node, symbol: str = '', color: typing.Optional[
     for cur in ranges[1:].copy():
         if cur[0] != prev[1]:
             ranges.insert(ranges.index(cur), (prev[1], cur[0], False))
+            prev = cur
     if ranges[0][0][1] != 0:
         ranges.insert(0, ((ranges[0][0][0], 0), ranges[0][0], False))
 
@@ -154,35 +155,6 @@ def format_change(change: diff.Change) -> str:
         buffer.append(base_code)
     if other_code:
         buffer.append(other_code)
-
-    return os.linesep.join(buffer)
-
-
-def format_conflict(conflict: analysis.AnalysisResult):
-    """
-    Formats a conflict from analysis.
-
-    :param conflict: The analysis result to format.
-    :return: The formatted analysis result.
-    """
-    buffer = []
-
-    buffer.append(click.style(f"CONFLICT: {conflict.name}", bold=True))
-    buffer.append(click.style(f"Severity: {conflict.severity:.2f}"))
-
-    indent_continuation = click.style('│ ', fg='gray')
-    indent_item = click.style('├─', fg='gray')
-
-    for change in conflict.changes:
-        change_lines = format_change(change).split(os.linesep)
-
-        if len(change_lines) > 0:
-            buffer.append(f"{indent_item}{change_lines[0]}")
-
-            for line in change_lines[1:]:
-                buffer.append(f"{indent_continuation}{line}")
-
-    buffer.append(click.style('└───', fg='gray'))
 
     return os.linesep.join(buffer)
 
