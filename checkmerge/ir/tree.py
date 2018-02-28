@@ -451,6 +451,9 @@ class Node(object):
     def __len__(self):
         return len(self.children)
 
+    def __bool__(self):
+        return True
+
     def __contains__(self, item):
         return item in self.children
 
