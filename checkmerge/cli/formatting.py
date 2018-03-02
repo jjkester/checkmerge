@@ -77,7 +77,9 @@ def format_node_in_code(node: ir.Node, symbol: str = '', color: typing.Optional[
     :param color: The color to use (defaults to the default color).
     :return: The formatted node.
     """
-    assert node.location.file
+    if not node.location.file:
+        return ''
+
     ranges = sorted(node_ranges(node))
 
     if len(ranges) == 0:
