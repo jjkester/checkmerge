@@ -6,45 +6,27 @@
 
 #define INPUT_INCREMENT 10
 
-void print_prompt(FILE* f) {
+void prompt(FILE* f) {
     fprintf(f, "\n> "); fflush(f);
 }
 
 data* read_data(char const* command) {
-    int age;
-    char name[NAME_LENGTH];
-    data* result = NULL;
-    int args_matched = sscanf(command, "%*1s %i %19s", &age, name);
-
-    if(args_matched == 2) {
-        result = data_new(age, name);
-    }
-
-    return result;
+    int age = 0;
+    char name[NAME_LENGTH] = "";
+    sscanf(command, "%*s %i %19s", &age, name);
+    return data_new(age, name);
 }
 
 int handle_command(FILE* printFile, dll* dll, char* command) {
-    data* input_data;
-
     switch(*command) {
     case 'i': {
-        input_data = read_data(command);
-        if(input_data) {
-            dll_insert(dll, input_data);
-        }
-
+        dll_insert(dll, read_data(command));
         break;
     } case 'e': {
-        input_data = read_data(command);
-        if(input_data) {
-            dll_erase(dll, input_data);
-        }
-
-        data_delete(input_data);
-
+        dll_erase(dll, read_data(command));
         break;
     } case 'r':
-        dll_reverse(dll);
+        dll_inverse(dll);
         break;
     case 'p':
         dll_print(dll, printFile);
@@ -56,9 +38,7 @@ int handle_command(FILE* printFile, dll* dll, char* command) {
         test(printFile);
         break;
     default: {
-        fprintf(printFile, "No such command: ");
-        fprintf(printFile, "%s", command);
-        fprintf(printFile, "\n");
+        fprintf(printFile, "No such command: %s\n", command);
         break;
     }
     }
@@ -66,30 +46,49 @@ int handle_command(FILE* printFile, dll* dll, char* command) {
 }
 
 char* read_command(FILE* in) {
-    int inputMaxLength = 0;
     char* input = NULL;
-    char* inputAt = NULL;
+    char* temp = NULL;
+    size_t index = 0, size = 0;
+    unsigned int incr = INPUT_INCREMENT;
 
-    int incr = INPUT_INCREMENT;
-
-    inputMaxLength = incr;
-    input = (char*)malloc(sizeof(char) * incr);
-    inputAt = input;
+    input = (char*)calloc(incr, sizeof(char));
+    size = incr;
 
     do {
-        inputAt[incr - 1] = 'e';
+        if(fgets(&input[index], incr, in) == NULL) {
+            free(input);
+            return NULL;
+        }
 
-        if(fgets(inputAt, incr, in) == NULL) return NULL;
-
-        if(inputAt[incr - 1] != '\0' || inputAt[incr - 2] == '\n') {
+        if(input[strlen(input) - 1] == '\n') {
             break;
         }
 
-        inputMaxLength += INPUT_INCREMENT;
-        input = realloc(input, sizeof(char) * inputMaxLength);
-        inputAt = input + inputMaxLength - incr - 1;
+        size += incr;
+        temp = (char*)realloc(input, sizeof(char) * size);
+
+        if (temp == NULL) {
+            free(input);
+            fprintf(stderr, "Input too large, out of memory.");
+        }
+
+        input = temp;
+        index += incr - 1;
         incr = INPUT_INCREMENT + 1;
-    } while(1);
+    } while(input != NULL);
+
+
+    if (input != NULL) {
+        size = strlen(input);
+        temp = (char*)realloc(input, sizeof(char) * size + 1);
+
+        if (temp == NULL) {
+            free(input);
+            fprintf(stderr, "Input too large, out of memory.");
+        }
+
+        input = temp;
+    }
 
     return input;
 }
@@ -98,10 +97,11 @@ int main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
     char* command;
+
     dll* dll = dll_new();
 
     while(1) {
-        print_prompt(stdout);
+        prompt(stdout);
 
         command = read_command(stdin);
         if(command == NULL) {
@@ -114,7 +114,9 @@ int main(int argc, char* argv[]) {
     }
 
     free(command);
+
     dll_delete(dll);
+
     fprintf(stdout, "\nBye.\n");
 
 }

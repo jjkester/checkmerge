@@ -115,6 +115,12 @@ int main(int argc, char* argv[]) {
 
     free(command);
 
+    fprintf(stdout, "Are you sure?");
+    print_prompt(stdout);
+
+    command = read_command(stdin);
+    free(command);
+
     dll_delete(dll);
 
     fprintf(stdout, "\nBye.\n");

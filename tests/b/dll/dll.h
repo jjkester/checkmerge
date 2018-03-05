@@ -1,7 +1,8 @@
 #define NAME_LENGTH 20
+#define KEEP_ORDERED 0
 
 typedef struct {
-    int age;
+    int number;
     char name[NAME_LENGTH];
 } data;
 
@@ -53,7 +54,6 @@ dll* dll_new();
 
 /**
  * @brief Inserts @c data into the DLL, at the end
- * @correction inserts @c data into the correct spot in the list.
  * @param dll The DLL into which data is to be inserted
  * @param data The data to be inserted
  */
@@ -77,7 +77,7 @@ void dll_print(dll* dll, FILE* printFile);
  * @brief Reverses the order of elements in the DLL
  * @param dll The DLL of which the order of its elements is to be reversed
  */
-void dll_reverse(dll* dll);
+void dll_inverse(dll* dll);
 
 /**
  * @brief Deletes the DLL and frees all its memory

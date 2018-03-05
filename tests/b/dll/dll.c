@@ -4,24 +4,22 @@
 #include <string.h>
 
 #include "dll.h"
-//Implement comparing based on reverse
+
 int data_compare(data* d1, data* d2) {
     assert(d1);
     assert(d2);
+    if(d1->number > d2->number) return 1;
+    if(d1->number < d2->number) return -1;
+    return strcmp(d1->name, d2->name);
+}
 
-    if(d1->age < d2->age) {
-        return -1; //if not reversed and age1 < age2, return -1
-    }
-    if(d1->age > d2->age) {
-        return 1; //if not reversed and age1 > age2, return 1
-    }
-
-    return strcmp(d1->name, d2->name); //if equal return 0
+void data_print(data* d, FILE* f) {
+    fprintf(f, "%i %s", d->number, d->name);
 }
 
 data* data_new(int age, char const* name) {
-    data* d = (data*) malloc(sizeof(data));
-    d->age = age;
+    data* d = (data*)malloc(sizeof(data));
+    d->number = age;
     strncpy(d->name, name, NAME_LENGTH);
     return d;
 }
@@ -31,123 +29,137 @@ void data_delete(data* d) {
 }
 
 dll* dll_new() {
-    // Implement this
-    dll* new_dll = malloc(sizeof(dll));
-
-    if(new_dll) {
-        new_dll->head = NULL;
-        new_dll->tail = NULL;
-    }
-
-    return new_dll;
+    dll* d = (dll*)malloc(sizeof(dll));
+    d->head = NULL;
+    d->tail = NULL;
+    return d;
 }
 
-//Implement sorted insertion based on reverse
 void dll_insert(dll* dll, data* data) {
-    // Implement this
-    node* new_node = malloc(sizeof(node));
-    new_node->data = data;
+    assert(dll);
+    assert(data);
 
-    if(dll->head) {
-        // There are already nodes, insert at end
+    node* newnode = (node*)malloc(sizeof(node));
+    newnode->data = data;
+    newnode->prev = NULL;
+    newnode->next = NULL;
 
-        new_node->next = NULL;
-        new_node->prev = dll->tail;
-        dll->tail->next = new_node;
-        dll->tail = new_node;
-
+    if (dll->head == NULL) {
+        dll->head = newnode;
+        dll->tail = newnode;
     } else {
-        // There are no nodes yet. Insert as first
-        new_node->prev = NULL;
-        new_node->next = NULL;
-        dll->tail = new_node;
-        dll->head = new_node;
-    }
-}
-
-void dll_erase(dll* dll, data* data) {
-    // Implement this
-    node* current = dll->head;
-
-    while(current) {
-        if(data_compare(data, current->data) == 0) {
-            //Found the data! Now erase node from dll and free the memory
-
-            // Set the head to the 2nd node in the dll
-            if(current == dll->head) {
-                dll->head = current->next;
-            }
-
-            // Set the tail to the 2nd to last node in the dll
-            if(current == dll->tail) {
-                dll->tail = current->prev;
-            }
-
-            // Set the previous of the next node to skip current
-            if(current->next) {
-                current->next->prev = current->prev;
-            }
-
-            // Set the next of the previous node to skip current
-            if(current->prev) {
-                current->prev->next = current->next;
-            }
-
-            node* next = current->next;
-
-            // Current node is free from the dll chain, free the memory
-            data_delete(current->data);
-            free(current);
-            current = next;
+        if (data_compare(data, dll->tail->data) > 0) {
+            // insert at tail
+            newnode->prev = dll->tail;
+            dll->tail->next = newnode;
+            dll->tail = newnode;
+        } else if (data_compare(data, dll->head->data) < 0) {
+            // insert at head
+            newnode->next = dll->head;
+            dll->head->prev = newnode;
+            dll->head = newnode;
         } else {
-            current = current->next;
+            node *cur = dll->head;
+
+            while (cur != NULL && cur->next != NULL) {
+                if (data_compare(data, cur->data) > 0 && data_compare(data, cur->next->data) <= 0) {
+                    // insert between
+                    newnode->prev = cur;
+                    newnode->next = cur->next;
+                    cur->next = newnode;
+                    newnode->next->prev = newnode;
+                    break;
+                }
+
+                cur = cur->next;
+            }
         }
     }
 }
 
-void dll_print(dll* dll, FILE* printFile) {
-    // Implement this
-    node* current = dll->head;
-    int i = 1;
+void dll_erase(dll* dll, data* data) {
+    assert(dll);
+    assert(data);
 
-    while(current) {
-        fprintf(printFile, "{index: %d, age: %d, name: %s}\n", i, current->data->age, current->data->name);
+    node* cur = dll->head;
+    node* del = NULL;
 
-        current = current->next;
-        i++;
+    while (cur != NULL && del == NULL) {
+
+        if (data_compare(cur->data, data) == 0) {
+            del = cur;
+        }
+
+        cur = cur->next;
     }
 
+    if (del != NULL) {
+        if (del == dll->head) {
+            dll->head = del->next;
+        }
+        if (del == dll->tail) {
+            dll->tail = del->prev;
+        }
+        if (del->prev != NULL) {
+            del->prev->next = del->next;
+        }
+        if (del->next != NULL) {
+            del->next->prev = del->prev;
+        }
+
+        data_delete(del->data);
+
+        free(del);
+    }
 }
 
-void dll_reverse(dll* dll) {
-    // Implement this
-    node* current = dll->head;
+void dll_print(dll* dll, FILE* printFile) {
+    assert(dll);
+    assert(printFile);
 
-    while(current) {
-        node* old_next = current->next;
+    node* cur = dll->head;
 
-        current->next = current->prev;
-        current->prev = old_next;
-
-        current = old_next;
+    while (cur != NULL) {
+        data_print(cur->data, printFile);
+        fprintf(printFile, "\n");
+        cur = cur->next;
     }
-    node* old_head = dll->head;
-    dll->head = dll->tail;
-    dll->tail = old_head;
+}
+
+void dll_inverse(dll* dll) {
+    assert(dll);
+
+    node* head = dll->head;
+    node* tail = dll->tail;
+
+    node* cur = head;
+
+    while (cur != NULL) {
+        node* prev = cur->prev;
+        node* next = cur->next;
+
+        cur->prev = next;
+        cur->next = prev;
+
+        cur = next;
+    }
+
+    dll->head = tail;
+    dll->tail = head;
 }
 
 void dll_delete(dll* dll) {
-    // Implement this
+    assert(dll);
 
-    node* current = dll->head;
+    node* cur = dll->head;
 
-    while(current) {
-        node* next = current->next;
+    while (cur != NULL) {
+        node* next = cur->next;
 
-        data_delete(current->data);
-        free(current);
+        data_delete(cur->data);
+        free(cur);
 
-        current = next;
+        cur = next;
     }
 
     free(dll);
