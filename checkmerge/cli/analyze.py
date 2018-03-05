@@ -87,11 +87,18 @@ def analyze(app: CheckMerge, parser, analysis, base, compared, ancestor, time, s
 
 
 @cli.command()
+@click.option('--parser', '-p', 'parser', type=click.STRING, required=False,
+              help="The parser to use. Run `list-parsers` to see the available parsers.")
+@click.option('--analysis', '-a', 'analysis', type=click.STRING, required=False, multiple=True,
+              help="The analysis to perform. Repeat this option to perform multiple analysis."
+                   "Run `list-analysis` to see the available analysis.")
 @click.argument('test_dir', type=click.Path(exists=True, file_okay=False, resolve_path=True))
 @click.argument('file_name', type=click.STRING)
 @click.pass_context
-def test(ctx: click.Context, file_name, test_dir):
+def test(ctx: click.Context, file_name, test_dir, parser=None, analysis=None):
     """Run a test. Finds the test files in the specified directory. The file name of the test must be relative to a
     version directory in the test directory."""
-    ctx.invoke(analyze, parser='clang', analysis=['dependence', 'reference'], base=f"{test_dir}/a/{file_name}",
+    parser = parser or 'clang'
+    analysis = analysis or ['dependence', 'reference']
+    ctx.invoke(analyze, parser=parser, analysis=analysis, base=f"{test_dir}/a/{file_name}",
                compared=f"{test_dir}/b/{file_name}", ancestor=f"{test_dir}/0/{file_name}", time=True, stats=True)
