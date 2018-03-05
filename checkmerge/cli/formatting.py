@@ -29,9 +29,9 @@ def format_line_diff(base: str, other: str) -> str:
     buffer = []
 
     if base:
-        buffer.append(f"-{base}")
+        buffer.append(f"<{base}")
     if other:
-        buffer.append(f"+{other}")
+        buffer.append(f">{other}")
 
     return click.style(f"@@ {' '.join(buffer)} @@", fg='cyan')
 
@@ -145,18 +145,18 @@ class CheckMergeFormatter(click.HelpFormatter):
         base_lines = other_lines = ''
 
         if change.base:
-            base_code = format_node_in_code(change.base, '-', 'red')
+            base_code = format_node_in_code(change.base, '<', 'red')
             lines = len(base_code.split('\n'))
             base_lines = f"{change.base.location.line},{change.base.location.line + lines}"
         if change.other:
-            other_code = format_node_in_code(change.other, '+', 'green')
+            other_code = format_node_in_code(change.other, '>', 'green')
             lines = len(other_code.split('\n'))
             other_lines = f"{change.other.location.line},{change.other.location.line + lines}"
 
         if base_lines:
-            self.write_text(format_filename(change.base.location.file, '-'), False)
+            self.write_text(format_filename(change.base.location.file, '<'), False)
         if other_lines:
-            self.write_text(format_filename(change.other.location.file, '+'), False)
+            self.write_text(format_filename(change.other.location.file, '>'), False)
         if base_lines or other_lines:
             self.write_text(format_line_diff(base_lines, other_lines), False)
 
