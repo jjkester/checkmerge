@@ -128,8 +128,8 @@ class Node(object):
     collection. It is therefore important to keep a reference to the root of the tree.
     """
     __slots__ = ('type', 'label', 'ref', '_parent', 'children', 'source_range', 'metadata', '_is_memory_operation',
-                 '_dependencies', '_reverse_dependencies', '_mapping', '_changed', '_height', '_hash', '_root',
-                 '__weakref__')
+                 '_dependencies', '_reverse_dependencies', '_mapping', '_changed', '_height', '_hash', '_hash_str',
+                 '_root', '__weakref__')
 
     def __init__(self, typ: str, label: typing.Optional[str] = None, ref: typing.Optional[str] = None,
                  parent: typing.Optional["Node"] = None,
@@ -175,6 +175,7 @@ class Node(object):
         self._changed: typing.Optional[bool] = None
         self._height = None
         self._hash = None
+        self._hash_str = None
         self._root = None
 
     @property
@@ -325,7 +326,7 @@ class Node(object):
     def _get_height(self) -> int:
         """Calculates the height of the subtree recursively."""
         if len(self.children) > 0:
-            return max(map(Node._get_height, self.children)) + 1
+            return max(map(lambda n: n.height, self.children)) + 1
         return 1
 
     @property
@@ -339,8 +340,10 @@ class Node(object):
 
     def _get_hash_str(self) -> str:
         """Calculates the string used for calculating the hash recursively."""
-        children = ''.join(map(Node._get_hash_str, self.children))
-        return f"{{{self.type}@{self.label}|{children}}}"
+        if self._hash_str is None:
+            children = ''.join(map(Node._get_hash_str, self.children))
+            self._hash_str = f"{{{self.type}@{self.label}|{children}}}"
+        return self._hash_str
 
     def subtree(self, include_self: bool = True, reverse: bool = False) -> typing.Generator["Node", None, None]:
         """
