@@ -1,0 +1,47 @@
+Description of the dll test case.
+
+dll.c
+-----
+
+The 0 version contains unimplemented stubs primarily.
+
+The a version adds implementations.
+
+The b version adds the same implementations, but with a number of changes:
+  - A refactoring in a struct (age -> number)
+  - Two consecutive conditionals flipped in the data_compare function
+  - Removed logic for the KEEP_ORDERED constant in the dll_insert function
+  - Refactored the dll_reverse function to dll_inverse
+
+The following problems are expected: None
+
+Notes for false positives:
+  - The refactoring should NOT pose a problem in this case
+  - Merge conflict in the body of the dll_insert function
+
+
+dll.h
+-----
+
+Two refactored names (age -> number in data struct; dll_reverse -> dll_inverse function)
+
+
+main.c
+------
+
+The 0 version is the original version.
+
+The a version contains fixes for issues in the original version.
+
+The b version contains the same fixes, but with a number of changes:
+  - Refactored the dll_reverse function to dll_inverse
+  - A refactoring in a struct (age -> number)
+  - Renamed print_prompt function to prompt
+  - Changed two output strings
+  - Removed a couple of lines
+
+The following problems are expected:
+  - Refactoring of print_prompt leaves a reference untouched
+
+Nodes for false positives:
+  - Merge conflicts expected for output strings and removed lines

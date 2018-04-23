@@ -1,0 +1,7 @@
+fib / fib_rec: Refactored and body changed. Expected to match.
+
+perms: Added in A. Calls to fact() while fact -> factorial in B. Expected reference conflict.
+print_floyd_triangle: loop conditions changed, influence eachother. Expected memory dependence conflict.
+                      fib() call in version A is new while fib -> fib_rec in version B. Expected reference conflict.
+
+Merge conflict with fib_opt / fib_dyn functions.

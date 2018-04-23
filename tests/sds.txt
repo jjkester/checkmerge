@@ -1,0 +1,22 @@
+Description of the sds test case.
+
+sds.c
+-----
+
+Version 0 is a common ancestor version of versions a and b.
+
+Version a is a relatively new version from the git history, version b is slightly older.
+
+For a full overview of the changes (which were not introduced for the purpose of this test) please run a diff command.
+The biggest change is the change of a number of types from int to ssize_t.
+
+The following problems are expected:
+  - In sdsRemoveFreeSpace function a new variable oldhrlen is introduced in place of a call. While no change exists
+    between 0 and b, the algorithm does see this as a change as for the dependence algorithm only two versions are
+    considered.
+
+
+sds.h
+-----
+
+This file is only included to allow sds.c to compile.
