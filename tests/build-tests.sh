@@ -7,6 +7,9 @@ TEST_DIR="${DIR}"
 TEST_FILES="${TEST_DIR}/*/**/*.c"
 error=0
 
+if [ -z ${CLANG} ]; then CLANG="clang"; fi
+if [ -z ${OPT} ]; then OPT="opt"; fi
+
 if [ -z ${CM_LIB+x} ]; then echo "CM_LIB environment variable not set!"; exit 1; fi
 
 echo "Building test files in ${TEST_DIR}..."
@@ -20,7 +23,7 @@ do
 
     printf "    Compiling %s... " $(basename ${in})
 
-    clang -S -O0 -g -emit-llvm "$in" -o "$out" > /dev/null 2>&1
+    ${CLANG} -S -O0 -g -emit-llvm "$in" -o "$out" > /dev/null 2>&1
 
     if [ $? -ne 0 ]; then
         error=$((error + 1))
@@ -31,7 +34,7 @@ do
 
         printf "    Analyzing %s... " $(basename ${out})
 
-        opt -analyze -load=${CM_LIB} -checkmerge ${out} > /dev/null 2>&1
+        ${OPT} -analyze -load=${CM_LIB} -checkmerge ${out} > /dev/null 2>&1
 
         if [ $? -ne 0 ]; then
             error=$((error + 1))
